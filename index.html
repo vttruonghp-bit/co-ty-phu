@@ -1,0 +1,2410 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Cờ Tỉ Phú Việt Nam – V0.29.1 Socket.IO Online</title>
+<style>
+:root{--bg:#07111f;--panel:#0d1b2a;--line:#294056;--text:#f8fafc;--muted:#9fb1c5;--good:#22c55e;--warn:#f59e0b;--bad:#ef4444;--blue:#3b82f6}
+*{box-sizing:border-box} body{margin:0;min-height:100vh;font-family:Inter,Segoe UI,Tahoma,sans-serif;background:radial-gradient(circle at 20% 5%,#163454 0,#07111f 45%,#020712 100%);color:var(--text)}
+button,input,select{font:inherit} button{border:0;border-radius:7px;padding:8px 11px;font-weight:850;cursor:pointer;transition:.18s ease;min-height:39px}button:hover{transform:translateY(-1px);filter:brightness(1.05)}button:active{transform:translateY(1px) scale(.98)}button:disabled{opacity:.38;cursor:not-allowed;transform:none}
+.btn-main{background:linear-gradient(135deg,#22c55e,#15803d);color:white}.btn-blue{background:linear-gradient(135deg,#38bdf8,#2563eb);color:white}.btn-warn{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#172033}.btn-bad{background:linear-gradient(135deg,#fb7185,#dc2626);color:white}.btn-ghost{background:#16283b;color:#eef6ff;border:1px solid #304a63}
+#app{display:grid;grid-template-columns:minmax(1350px,1fr) 390px;gap:18px;max-width:2300px;margin:auto;padding:14px;align-items:start}.board-stage{position:relative;padding:46px;min-width:1350px}
+#board{aspect-ratio:1/1;display:grid;grid-template-columns:repeat(11,1fr);grid-template-rows:repeat(11,1fr);gap:3px;background:#06101c;border:5px solid #294056;border-radius:26px;box-shadow:0 28px 80px #0008,inset 0 0 30px #0008;position:relative;overflow:visible}
+.cell{position:relative;background:#fff;color:#0f172a;border-radius:7px;min-width:0;border:2px solid #d7dee8;transition:.18s ease;overflow:visible}.cell.special{background:#eef6ff}.cell.tax{background:linear-gradient(145deg,#fff7ed,#ffedd5);border:3px solid #c2410c}.cell.utility{background:#fffce5}.cell.airport{background:linear-gradient(145deg,#6b7280,#4b5563);border:4px solid #111827}.cell.chest{background:linear-gradient(145deg,#4cc9f0 0%,#38bdf8 45%,#2563eb 100%);border:5px solid #7c3aed;box-shadow:inset 0 0 0 2px #d8b4fe}.cell.chance{background:linear-gradient(145deg,#ff5b5b 0%,#ef4444 48%,#991b1b 100%);border:5px solid #fbbf24;box-shadow:inset 0 0 0 2px #111827}.cell.corner{background:linear-gradient(145deg,#ffd166 0%,#f59e0b 55%,#ea580c 100%);border:5px solid #111827;box-shadow:inset 0 0 0 2px #fff3}
+.cell-inner{width:100%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:5px;perspective:360px}
+/* Tên địa danh chiếm khoảng 60% diện tích ô: ưu tiên khả năng đọc, mô hình nằm phía dưới. */
+.cell-name{position:absolute;top:2%;left:4%;right:4%;height:60%;z-index:16;display:flex;align-items:center;justify-content:center;padding:2px 3px;font-size:clamp(20px,1.38vw,29px);font-weight:1000;line-height:1.02;text-align:center;color:#05070a;text-shadow:-1.5px -1.5px 0 #fff,1.5px -1.5px 0 #fff,-1.5px 1.5px 0 #fff,1.5px 1.5px 0 #fff,0 0 5px #fff;pointer-events:none;overflow:hidden}
+.cell.airport .cell-name,.cell.chance .cell-name,.cell.chest .cell-name,.cell.corner .cell-name{top:0;left:5px;right:5px;height:100%;transform:none;font-size:clamp(22px,1.58vw,32px);line-height:1.02;padding:5px}
+.cell.airport .cell-name{color:#fff;text-shadow:-2px -2px 0 #111,2px -2px 0 #111,-2px 2px 0 #111,2px 2px 0 #111,0 0 6px #111}
+.cell.chance .cell-name{color:#fff;text-shadow:-2px -2px 0 #111827,2px -2px 0 #111827,-2px 2px 0 #111827,2px 2px 0 #111827,0 0 7px #111827;letter-spacing:.04em}
+.cell.chest .cell-name{color:#07111f;text-shadow:-2px -2px 0 #fca5a5,2px -2px 0 #fca5a5,-2px 2px 0 #fca5a5,2px 2px 0 #fca5a5,0 0 7px #ef4444;letter-spacing:.04em}
+.cell.corner .cell-name{color:#111827;text-shadow:-1px -1px 0 #fde68a,1px -1px 0 #fde68a,-1px 1px 0 #fde68a,1px 1px 0 #fde68a}
+.cell.airport .model-wrap,.cell.chance .model-wrap,.cell.chest .model-wrap,.cell.corner .model-wrap{display:none}
+.cell-price{position:absolute;bottom:5px;left:5px;right:5px;z-index:9;font-size:clamp(16px,1.05vw,21px);font-weight:1000;text-align:center;color:#475569;line-height:1;text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 4px #fff}.cell-price.rent{color:#dc2626;font-size:clamp(18px,1.18vw,23px);letter-spacing:.02em}.level-out{position:absolute;z-index:90;min-width:34px;min-height:34px;display:grid;place-items:center;padding:5px 8px;border-radius:8px;background:#07111ff2;border:2px solid currentColor;box-shadow:0 5px 18px #0007;font-size:clamp(16px,1.1vw,22px);line-height:1;font-weight:1000;white-space:nowrap;pointer-events:none;text-shadow:0 1px 2px #000}.level-out.hotel{font-size:clamp(21px,1.5vw,28px);animation:sparkleOut .75s ease-in-out infinite alternate}.level-out.mort{font-size:clamp(10px,.72vw,13px);padding:6px 8px}.edge-bottom .level-out{bottom:-42px;left:50%;transform:translateX(-50%)}.edge-top .level-out{top:-42px;left:50%;transform:translateX(-50%)}.edge-left .level-out{left:-74px;top:50%;transform:translateY(-50%)}.edge-right .level-out{right:-74px;top:50%;transform:translateY(-50%)}@keyframes sparkleOut{from{filter:drop-shadow(0 0 2px currentColor);transform:translateX(-50%) scale(.94)}to{filter:drop-shadow(0 0 11px currentColor);transform:translateX(-50%) scale(1.08)}}.edge-left .level-out.hotel,.edge-right .level-out.hotel{animation:sideSparkleOut .75s ease-in-out infinite alternate}@keyframes sideSparkleOut{from{filter:drop-shadow(0 0 2px currentColor);transform:translateY(-50%) scale(.94)}to{filter:drop-shadow(0 0 11px currentColor);transform:translateY(-50%) scale(1.08)}}
+.model-wrap{position:absolute;top:58%;left:5px;right:5px;bottom:18px;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:2}
+.model3d{position:relative;width:92%;height:88%;transform-style:preserve-3d;filter:drop-shadow(0 6px 6px rgba(0,0,0,.22));transition:.25s ease;--glass:rgba(209,231,255,.38);--glass-edge:rgba(255,255,255,.72);--stone:#cfd8e3;--stone-side:#95a4b6;--roof:#7c4f31;--roof-dark:#56341b;--green:#5aa773;--green-dark:#2f6c4d;--blue:#5baee7;--blue-dark:#3477b0;--sand:#ceb17a;--accent:#6d88b7}
+.model3d.glass{opacity:.62;filter:drop-shadow(0 4px 8px rgba(125,191,255,.24))}.model3d.mortgaged-model{filter:grayscale(1) brightness(.8) drop-shadow(0 4px 6px rgba(0,0,0,.18));opacity:.85}
+.model3d .base-iso{position:absolute;left:16%;bottom:8%;width:68%;height:20%;background:linear-gradient(135deg,#f8fafc,#d8e0ea);transform:rotateX(62deg) rotateZ(-45deg);border:1px solid rgba(0,0,0,.08);border-radius:5px;box-shadow:0 8px 12px rgba(0,0,0,.12)}
+.model3d.glass .base-iso,.model3d.glass .tower-front,.model3d.glass .tower-side,.model3d.glass .roof-top,.model3d.glass .roof-side,.model3d.glass .roof-front,.model3d.glass .mountain,.model3d.glass .mountain::before,.model3d.glass .mountain::after,.model3d.glass .tree,.model3d.glass .tree::before,.model3d.glass .tree::after,.model3d.glass .runway,.model3d.glass .plane,.model3d.glass .metro-body,.model3d.glass .metro-roof,.model3d.glass .metro-window,.model3d.glass .sign-plate,.model3d.glass .bars,.model3d.glass .coin-stack,.model3d.glass .water-tank,.model3d.glass .water-drop,.model3d.glass .light-pole,.model3d.glass .bolt,.model3d.glass .temple-body,.model3d.glass .temple-roof,.model3d.glass .wave,.model3d.glass .palm{background:var(--glass)!important;border-color:var(--glass-edge)!important;color:rgba(255,255,255,.85)!important;box-shadow:none!important}
+.model3d.glass .mountain{opacity:.88}.model3d.mortgaged-model .base-iso,.model3d.mortgaged-model .tower-front,.model3d.mortgaged-model .tower-side,.model3d.mortgaged-model .roof-top,.model3d.mortgaged-model .roof-side,.model3d.mortgaged-model .roof-front,.model3d.mortgaged-model .mountain,.model3d.mortgaged-model .tree,.model3d.mortgaged-model .runway,.model3d.mortgaged-model .plane,.model3d.mortgaged-model .metro-body,.model3d.mortgaged-model .metro-roof,.model3d.mortgaged-model .sign-plate,.model3d.mortgaged-model .bars,.model3d.mortgaged-model .coin-stack,.model3d.mortgaged-model .water-tank,.model3d.mortgaged-model .water-drop,.model3d.mortgaged-model .light-pole,.model3d.mortgaged-model .bolt,.model3d.mortgaged-model .temple-body,.model3d.mortgaged-model .temple-roof,.model3d.mortgaged-model .wave,.model3d.mortgaged-model .palm{background:#b7bec7!important;border-color:#e5e7eb!important;color:#fff!important}
+.model3d .tower-front{position:absolute;left:36%;bottom:22%;width:18%;height:30%;background:linear-gradient(180deg,var(--stone),#e8edf3);border:1px solid rgba(0,0,0,.08);border-radius:3px;transform:skewY(-14deg)}
+.model3d .tower-side{position:absolute;left:54%;bottom:22%;width:10%;height:30%;background:linear-gradient(180deg,#a5b3c4,var(--stone-side));border:1px solid rgba(0,0,0,.08);border-left:0;transform:skewY(14deg)}
+.model3d .roof-top{position:absolute;left:34%;bottom:52%;width:24%;height:8%;background:linear-gradient(180deg,#ad6f45,var(--roof));transform:rotateX(60deg) rotateZ(-45deg);border-radius:2px}
+.model3d .roof-front{position:absolute;left:36%;bottom:48%;width:18%;height:5%;background:linear-gradient(180deg,#a56039,var(--roof));border-radius:2px;transform:skewY(-14deg)}
+.model3d .roof-side{position:absolute;left:54%;bottom:48%;width:10%;height:5%;background:linear-gradient(180deg,#6a3f22,var(--roof-dark));border-radius:2px;transform:skewY(14deg)}
+.model3d .tree{position:absolute;bottom:24%;width:10%;height:20%;background:linear-gradient(180deg,#79d48d,var(--green));clip-path:polygon(50% 0,100% 48%,72% 48%,100% 100%,0 100%,28% 48%,0 48%);border:1px solid rgba(0,0,0,.05)}.model3d .tree::after{content:'';position:absolute;left:44%;bottom:-17%;width:12%;height:22%;background:#7b5b39;border-radius:2px}.model3d .tree.t1{left:24%}.model3d .tree.t2{right:21%;height:18%}
+.model3d .mountain{position:absolute;left:24%;bottom:24%;width:48%;height:28%;background:linear-gradient(180deg,#97d0a1,var(--green-dark));clip-path:polygon(0 100%,22% 52%,34% 67%,54% 20%,70% 56%,82% 36%,100% 100%);border:1px solid rgba(0,0,0,.05)}
+.model3d .runway{position:absolute;left:23%;bottom:22%;width:54%;height:14%;background:linear-gradient(180deg,#6c7a89,#3a4654);border-radius:14px;transform:skewX(-16deg);border:1px solid rgba(255,255,255,.15)}.model3d .runway::before{content:'';position:absolute;left:8%;right:8%;top:46%;height:2px;background:repeating-linear-gradient(90deg,#fff 0 12%,transparent 12% 24%)}.model3d .plane{position:absolute;left:46%;bottom:34%;width:18%;height:8%;background:#e7f4ff;clip-path:polygon(0 50%,30% 45%,42% 0,58% 0,70% 45%,100% 50%,70% 55%,58% 100%,42% 100%,30% 55%);transform:rotate(-15deg);box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+.model3d .metro-body{position:absolute;left:28%;bottom:24%;width:44%;height:20%;background:linear-gradient(180deg,#79c6ff,#2f7dd0);border-radius:10px 10px 6px 6px;border:1px solid rgba(0,0,0,.08);transform:skewX(-14deg)}.model3d .metro-roof{position:absolute;left:32%;bottom:42%;width:36%;height:8%;background:linear-gradient(180deg,#d7efff,#8dcaf7);transform:skewX(-14deg);border-radius:4px}.model3d .metro-window{position:absolute;left:35%;bottom:29%;width:8%;height:7%;background:#eef8ff;border-radius:2px;box-shadow:12px 0 0 #eef8ff,24px 0 0 #eef8ff}
+.model3d .light-pole{position:absolute;left:49%;bottom:24%;width:4%;height:26%;background:linear-gradient(180deg,#d9e0e7,#8f9aa6);border-radius:2px}.model3d .bolt{position:absolute;left:44%;bottom:45%;width:14%;height:18%;background:linear-gradient(180deg,#ffe27a,#f3b417);clip-path:polygon(46% 0,70% 0,54% 36%,78% 36%,26% 100%,42% 56%,22% 56%)}
+.model3d .water-tank{position:absolute;left:37%;bottom:25%;width:26%;height:22%;background:linear-gradient(180deg,#98d3f5,#48a6d9);border-radius:8px 8px 12px 12px;border:1px solid rgba(0,0,0,.08)}.model3d .water-drop{position:absolute;left:44%;bottom:49%;width:12%;height:18%;background:linear-gradient(180deg,#d6f3ff,#43a5e2);clip-path:polygon(50% 0,80% 34%,98% 58%,84% 86%,50% 100%,16% 86%,2% 58%,20% 34%)}
+.model3d .temple-body{position:absolute;left:31%;bottom:24%;width:38%;height:18%;background:linear-gradient(180deg,#ecdfc4,#cfb585);border-radius:2px;border:1px solid rgba(0,0,0,.08)}.model3d .temple-roof{position:absolute;left:28%;bottom:40%;width:44%;height:10%;background:linear-gradient(180deg,#c55f45,#8b3e2d);clip-path:polygon(0 100%,50% 0,100% 100%)}
+.model3d .wave{position:absolute;left:28%;bottom:22%;width:44%;height:18%;background:linear-gradient(180deg,#89d9ff,#2b91d0);clip-path:polygon(0 72%,12% 58%,24% 70%,36% 52%,48% 68%,60% 46%,72% 64%,84% 50%,100% 64%,100% 100%,0 100%)}.model3d .palm{position:absolute;left:57%;bottom:31%;width:4%;height:21%;background:#79543b}.model3d .palm::before{content:'';position:absolute;left:-12px;top:-9px;width:28px;height:18px;background:conic-gradient(from 200deg,#3f8f56 0 20%,transparent 20% 35%,#3f8f56 35% 55%,transparent 55% 70%,#3f8f56 70% 88%,transparent 88% 100%);border-radius:50%}
+.model3d .sign-plate{position:absolute;left:35%;bottom:28%;width:30%;height:18%;background:linear-gradient(180deg,#fef3c7,#f59e0b);border-radius:8px;display:grid;place-items:center;font-weight:1000;color:#27313c;border:1px solid rgba(0,0,0,.08);box-shadow:0 4px 10px rgba(0,0,0,.12)}.model3d .sign-plate::before{content:'';position:absolute;left:46%;bottom:-28%;width:8%;height:28%;background:#7a5a3b}.model3d .sign-plate.icon::after{content:attr(data-ic);font-size:18px;line-height:1}
+.model3d .bars{position:absolute;left:33%;bottom:22%;width:34%;height:24%;background:repeating-linear-gradient(90deg,#9ca3af 0 5px,transparent 5px 9px);border:2px solid #6b7280;border-bottom-width:4px;border-radius:4px}.model3d .coin-stack{position:absolute;left:38%;bottom:23%;width:24%;height:22%;background:repeating-linear-gradient(180deg,#fddf7a 0 4px,#e6aa1d 4px 8px);border-radius:50%/18%;border:1px solid rgba(0,0,0,.08)}
+.model3d .model-badge{position:absolute;right:8%;top:12%;font-size:18px;filter:drop-shadow(0 1px 1px rgba(255,255,255,.5));opacity:.9}.model3d.glass .model-badge{opacity:.55}
+.level-mark{position:absolute;left:50%;top:51%;transform:translate(-50%,-50%);width:32%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-size:clamp(13px,1.55vw,24px);font-weight:1000;z-index:3;background:#ffffffd9;border:2px solid currentColor;box-shadow:0 2px 7px #0003;opacity:.98}.hotel-star{position:absolute;left:50%;top:53%;transform:translate(-50%,-50%);font-size:clamp(22px,2.4vw,38px);z-index:4;animation:sparkle .7s ease-in-out infinite alternate;filter:drop-shadow(0 0 4px #fff)}@keyframes sparkle{from{transform:translate(-50%,-50%) scale(.92);filter:drop-shadow(0 0 2px #fff)}to{transform:translate(-50%,-50%) scale(1.12);filter:drop-shadow(0 0 10px currentColor)}}
+.mortgaged{background:#6b7280!important}.mortgaged .cell-icon{filter:grayscale(1);opacity:.13}.mortgage-x{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);font-size:clamp(28px,3vw,48px);font-weight:1000;color:#1f2937;z-index:4;text-shadow:0 1px 2px #fff8}
+.owner-tag{position:absolute;z-index:60;background:#06101cf2;border:1px solid #ffffff38;box-shadow:0 5px 15px #0005;border-radius:8px;padding:3px 6px;font-size:9px;font-weight:950;white-space:nowrap;max-width:82px;overflow:hidden;text-overflow:ellipsis;pointer-events:none}.edge-bottom .owner-tag{bottom:-29px;left:50%;transform:translateX(-50%)}.edge-top .owner-tag{top:-29px;left:50%;transform:translateX(-50%)}.edge-left .owner-tag{left:-62px;top:50%;transform:translateY(-50%);max-width:60px}.edge-right .owner-tag{right:-62px;top:50%;transform:translateY(-50%);max-width:60px}
+.tokens{position:absolute;inset:20px 2px 3px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:center;gap:2px;z-index:20;pointer-events:none}.pawn{position:relative;width:29px;height:35px;display:flex;justify-content:center;align-items:flex-end;filter:drop-shadow(0 2px 2px #0006)}.pawn-head{position:absolute;top:2px;width:10px;height:10px;border-radius:50%;background:var(--pc);border:1px solid #fff}.pawn-body{position:absolute;top:12px;width:17px;height:15px;border-radius:7px 7px 5px 5px;background:var(--pc);border:1px solid #fff}.pawn-name{position:absolute;bottom:0;max-width:47px;padding:1px 3px;border-radius:4px;background:#020617e8;color:#fff;font-size:7px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid #ffffff40}.pawn.active::before{content:"";position:absolute;z-index:-1;top:-36px;width:46px;height:68px;background:linear-gradient(to bottom,rgba(255,255,214,.78),rgba(255,244,160,.19),transparent);clip-path:polygon(38% 0,62% 0,100% 100%,0 100%);animation:beam 1s ease-in-out infinite alternate}.pawn.active::after{content:"";position:absolute;top:-7px;width:32px;height:32px;border-radius:50%;box-shadow:0 0 20px 8px #fff59d99;animation:beam 1s ease-in-out infinite alternate}@keyframes beam{from{opacity:.45}to{opacity:1}}
+.path-flash{z-index:80!important;animation:pathBlink .22s linear infinite;box-shadow:inset 0 0 0 4px var(--flash),0 0 17px var(--flash)!important}@keyframes pathBlink{0%,100%{filter:brightness(1)}50%{filter:brightness(.55)}}
+#center{grid-row:2/11;grid-column:2/11;border-radius:18px;background:linear-gradient(145deg,#0b1726,#10263b);position:relative;z-index:4;padding:22px;display:grid;grid-template-rows:auto auto 1fr auto;gap:16px;box-shadow:inset 0 0 50px #0008;overflow:auto}.brand{display:flex;justify-content:space-between;gap:12px;align-items:center}.brand h1{margin:0;font-size:clamp(32px,3.1vw,50px);letter-spacing:.02em}.brand small{color:var(--muted);font-size:14px}.turn-pill{padding:9px 14px;border:1px solid #ffffff24;background:#ffffff0c;border-radius:999px;font-weight:950;font-size:clamp(14px,1.2vw,18px)}.dice-area{display:flex;justify-content:center;gap:30px;min-height:130px;align-items:center}.die{width:116px;height:116px;border-radius:22px;background:linear-gradient(145deg,#fff,#e5e7eb);color:#111827;display:grid;place-items:center;font-size:78px;font-weight:950;box-shadow:0 12px 30px #0007,inset 0 0 0 2px #fff;transform-origin:center;user-select:none}.die.rolling{animation:diceTumble .34s linear infinite;box-shadow:0 16px 36px #0008,0 0 20px #60a5fa66}@keyframes diceTumble{0%{transform:translateY(0) rotate(0deg) scale(1)}25%{transform:translateY(-9px) rotate(12deg) scale(1.05)}50%{transform:translateY(2px) rotate(-10deg) scale(.98)}75%{transform:translateY(-6px) rotate(8deg) scale(1.03)}100%{transform:translateY(0) rotate(0deg) scale(1)}}
+#confirmZone{display:none}.confirm-btn,.control-btn{width:min(230px,100%);min-width:190px;min-height:94px;justify-self:center;border-radius:5px;padding:12px 16px;font-size:clamp(23px,1.65vw,29px);line-height:1.12;animation:buttonPop .25s ease-out}.slot-left{grid-column:1}.slot-center{grid-column:2}.slot-right{grid-column:3}@keyframes buttonPop{from{opacity:0;transform:translateY(13px) scale(.93)}to{opacity:1;transform:none}}.message{background:#07111faa;border:1px solid #28435b;border-radius:16px;padding:28px;min-height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.48;font-size:clamp(28px,2.15vw,38px);font-weight:700}.message strong{color:#fde68a;font-size:1.16em}.roll-result{width:min(560px,96%);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;margin-top:10px;padding:15px 20px;border-radius:14px;background:#ffffff0d;border:1px solid #ffffff1c}.roll-number{font-size:clamp(34px,3.3vw,54px);font-weight:1000;color:#fff}.step-total{padding:10px 18px;border-radius:8px;background:#2563eb;color:#fff;font-size:clamp(23px,2.2vw,36px);font-weight:1000}.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;min-height:82px;align-items:end;padding:0 3% 2px}.actions .wide{grid-column:auto}.actions button{width:min(230px,100%);min-width:190px;min-height:94px;justify-self:center;border-radius:5px;padding:12px 16px;font-size:clamp(23px,1.65vw,29px);line-height:1.12;animation:buttonPop .25s ease-out}
+.side{position:sticky;top:18px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 36px);overflow:auto;padding-right:2px}.side-title{margin:0 0 4px;font-size:15px;color:#dbeafe}.history-card{border-radius:16px;padding:11px 11px 9px;border:1px solid #ffffff45;box-shadow:0 8px 24px #0004;color:white}.history-card.current{outline:3px solid #fff9;box-shadow:0 0 0 5px #ffffff15,0 10px 28px #0006}.history-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:7px;font-weight:950;text-shadow:0 1px 2px #0008}.history-money{background:#06101cbf;padding:3px 7px;border-radius:999px;font-variant-numeric:tabular-nums}.history-table{width:100%;border-collapse:collapse;font-size:10px;background:#06101cb5;border-radius:10px;overflow:hidden}.history-table th,.history-table td{padding:5px 6px;border-bottom:1px solid #ffffff17;vertical-align:top}.history-table th{text-align:left;color:#dbeafe}.history-table th:last-child,.history-table td:last-child{text-align:right;width:70px}.tx{display:inline-block;min-width:58px;text-align:right;font-weight:1000;padding:2px 5px;border-radius:7px;background:#fff}.tx.plus{color:#067647}.tx.minus{color:#b42318}.empty-tx{color:#cbd5e1;text-align:center!important;padding:9px!important}.syslog{background:#0b1a29;border:1px solid #294056;border-radius:14px;padding:10px}.syslog summary{cursor:pointer;font-weight:900;color:#dbeafe}.syslog-body{max-height:150px;overflow:auto;font-size:11px;color:#cbd5e1;line-height:1.45;margin-top:8px}.log-item{padding:4px 0;border-bottom:1px solid #ffffff0e}
+
+/* Cơ Hội / Khí Vận: chọn thẻ úp thay cho vòng quay */
+.center-card-mode{padding:6px!important;display:block!important;overflow:hidden!important}
+.center-card-mode .brand,.center-card-mode .dice-area,.center-card-mode #confirmZone,.center-card-mode #actions{display:none!important}
+.center-card-mode #message{width:100%;height:100%;min-height:0;padding:7px;border-radius:10px;display:block;overflow:hidden;background:linear-gradient(145deg,#08111d,#0d1f32)}
+.card-picker-wrap{width:100%;height:100%;display:grid;grid-template-rows:auto auto 1fr;gap:7px;align-items:stretch}
+.card-picker-title{font-size:clamp(22px,1.65vw,31px);font-weight:1000;text-align:center;line-height:1}
+.card-picker-sub{font-size:clamp(12px,.9vw,16px);color:#cbd5e1;font-weight:800;text-align:center;line-height:1.15}
+.card-picker-grid{width:100%;height:100%;min-height:0;display:grid;grid-template-columns:repeat(var(--card-cols,5),minmax(0,1fr));grid-template-rows:repeat(var(--card-rows,4),minmax(0,1fr));gap:8px;padding:2px;place-items:center;overflow:hidden}
+.hidden-card{position:relative;width:min(100%,100%);height:min(100%,100%);aspect-ratio:1/1;max-width:100%;max-height:100%;border:3px solid #ffffff50;border-radius:10px;padding:0;overflow:hidden;cursor:pointer;box-shadow:0 7px 16px #0009;transition:.16s ease;background:#111}
+.hidden-card:hover{transform:translateY(-3px) scale(1.035);filter:brightness(1.08);z-index:3;box-shadow:0 10px 22px #000b,0 0 0 2px #fff6}
+.hidden-card:active{transform:translateY(1px) scale(.98)}
+.card-sign{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat}
+.card-sign::after{content:"";position:absolute;inset:0;border:2px solid rgba(255,255,255,.42);border-radius:8px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.card-number{position:absolute;right:4px;bottom:3px;z-index:2;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#07111fe8;color:#fff;font-size:11px;font-weight:1000;display:grid;place-items:center;border:1px solid #ffffff70}
+.card-picker-wrap.chance .card-sign{background-image:url("assets/cards/chance_back.jpg")}
+.card-picker-wrap.chest .card-sign{background-image:url("assets/cards/chest_back.jpg")}
+.card-reveal{width:100%;height:100%;margin:0;display:grid;grid-template-columns:minmax(250px,46%) 1fr;gap:22px;align-items:center;text-align:left;background:linear-gradient(145deg,#f8fafc,#e7edf5);color:#111827;border-radius:14px;padding:20px;border:4px solid #cbd5e1;box-shadow:0 18px 48px #0006}
+.card-reveal-art{width:100%;aspect-ratio:2.35/1;overflow:hidden;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 4px #fff,0 10px 24px #0003}
+.card-reveal-art img{width:100%;height:100%;object-fit:cover;display:block}
+.card-reveal h2{margin:0 0 10px;font-size:clamp(24px,1.8vw,34px);line-height:1.16}
+.card-reveal p{margin:0;color:#475569;font-size:17px;font-weight:750;line-height:1.45}.card-accept-note{margin-top:10px;color:#64748b;font-size:15px;font-weight:850}
+@media(max-width:1200px){.card-picker-grid{gap:5px}.card-reveal{grid-template-columns:1fr}.card-reveal-art{max-width:520px;margin:auto}}
+
+.overlay,.mini-modal{position:fixed;inset:0;background:#020617d8;backdrop-filter:blur(7px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:18px}.setup{width:min(720px,96vw);height:min(92vh,820px);max-height:92vh;overflow-y:auto;overflow-x:hidden;background:linear-gradient(145deg,#f8fafc,#e2e8f0);color:#0f172a;border-radius:24px;padding:24px;box-shadow:0 30px 90px #000a}.setup h2{margin:0 0 5px;font-size:28px}.setup p{margin:0 0 18px;color:#475569}.setup-top{display:flex;gap:12px;align-items:end;margin-bottom:14px}.setup input,.setup select{border:1px solid #cbd5e1;border-radius:10px;padding:9px;background:white}.player-row{display:grid;grid-template-columns:54px 1fr 1fr;gap:10px;align-items:center;padding:10px;border-radius:14px;background:white;margin:8px 0;border:1px solid #dbe4ee}.num-badge{width:38px;height:38px;border-radius:12px;background:#0f172a;color:white;display:grid;place-items:center;font-weight:900}.color-select{display:flex;gap:6px;flex-wrap:wrap}.swatch{width:27px;height:27px;border-radius:50%;border:3px solid transparent;cursor:pointer;box-shadow:0 2px 5px #0002}.swatch.selected{border-color:#0f172a;transform:scale(1.08)}.swatch.used{opacity:.18;pointer-events:none}.setup-actions{position:sticky;bottom:-1px;z-index:20;display:flex;justify-content:center;margin:16px -24px -24px;padding:14px 24px 18px;background:linear-gradient(180deg,rgba(226,232,240,0),#e2e8f0 28%,#e2e8f0 100%);border-top:1px solid #cbd5e1}.setup-actions button{width:min(420px,100%);min-height:64px;font-size:22px;border-radius:10px;box-shadow:0 10px 28px #15803d55}.mini-box{width:min(600px,94vw);background:#f8fafc;color:#0f172a;border-radius:20px;padding:20px;box-shadow:0 25px 70px #0008}.mini-box h3{margin-top:0}.mini-box select{width:100%;padding:11px;border-radius:10px;border:1px solid #cbd5e1;margin:10px 0}.hidden{display:none!important}
+/* wheel */
+.wheel-box{width:min(760px,96vw);background:linear-gradient(145deg,#101827,#1d2b3b);border:1px solid #36516b;color:#fff;border-radius:24px;padding:20px;box-shadow:0 30px 90px #000b;text-align:center}.wheel-stage{width:min(460px,78vw);aspect-ratio:1;margin:12px auto 16px;position:relative}.wheel{position:absolute;inset:0;border-radius:50%;border:10px solid #e2e8f0;box-shadow:0 0 0 5px #0f172a,0 20px 50px #0008;transition:none}.wheel-label{position:absolute;left:50%;top:50%;transform-origin:0 0;font-size:11px;font-weight:1000;color:white;text-shadow:0 1px 3px #000;z-index:2}.pointer{position:absolute;left:50%;top:-11px;transform:translateX(-50%);width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:38px solid #fef08a;z-index:5;filter:drop-shadow(0 3px 2px #0007)}.wheel-result{min-height:70px;border-radius:14px;background:#07111f;padding:14px;border:1px solid #35516a;display:grid;place-items:center;font-size:18px;line-height:1.45}.wheel-ok{margin-top:12px;min-width:180px}
+/* debt */
+.debt-box{width:min(850px,96vw);max-height:92vh;overflow:auto;background:#f8fafc;color:#0f172a;border-radius:22px;padding:20px;box-shadow:0 30px 90px #000a}.debt-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 14px}.debt-stat{background:#e8eef5;border-radius:12px;padding:10px;text-align:center}.debt-stat b{display:block;font-size:21px;margin-top:4px}.debt-table{width:100%;border-collapse:collapse;font-size:13px}.debt-table th,.debt-table td{padding:8px;border-bottom:1px solid #d8e0e9;text-align:left}.debt-table td:last-child{text-align:right;white-space:nowrap}.debt-table button{padding:6px 10px;margin-left:5px}.debt-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.debt-note{color:#64748b;font-size:12px}.danger-note{color:#b42318;font-weight:900}
+@media(max-width:1180px){#app{grid-template-columns:1fr}.side{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:none}.board-stage{min-width:700px;margin:auto}}
+@media(max-width:1050px){#app{display:block;padding:8px}.board-stage{min-width:900px}.side{position:static;max-height:none;margin-top:14px}}
+@media(max-width:1100px){#app{padding:8px}.board-stage{min-width:1180px}.side{grid-template-columns:1fr}.owner-tag{display:none}.player-row{grid-template-columns:44px 1fr}.color-select{grid-column:2}}
+
+/* ===== V0.14 LANDSCAPE / FULL HEIGHT BOARD ===== */
+html,body{width:100%;height:100%;overflow:hidden}
+body{min-height:100vh;background:#06101c}
+#app{
+  width:100vw;height:100vh;max-width:none;margin:0;padding:0;gap:0;
+  display:grid;grid-template-columns:min(100vh,72vw) minmax(360px,1fr);align-items:stretch;overflow:hidden
+}
+.board-stage{
+  --shell:min(100vh,72vw);width:var(--shell);height:var(--shell);min-width:0;
+  margin:0;padding:24px 28px 24px 30px;align-self:start;justify-self:start;overflow:visible
+}
+#board{width:100%;height:100%;aspect-ratio:1/1;border-radius:16px;border-width:4px;gap:2px;box-shadow:0 12px 40px #0009,inset 0 0 22px #0007}
+#center{padding:16px;gap:10px;border-radius:12px;grid-template-rows:auto auto 1fr auto;overflow:hidden}
+.brand h1{font-size:clamp(24px,2.4vh,38px)}.brand small{font-size:clamp(11px,1.2vh,15px)}
+.turn-pill{font-size:clamp(14px,1.6vh,20px);padding:7px 11px}
+.dice-area{min-height:142px;gap:30px}
+.die{
+  width:clamp(105px,12vh,138px);height:clamp(105px,12vh,138px);border-radius:22px;
+  font-size:clamp(66px,8vh,92px);font-weight:1000;line-height:1;
+  background:linear-gradient(145deg,#fff,#e7edf5);box-shadow:0 16px 38px #0009,inset 0 0 0 3px #fff, inset -8px -10px 18px #cbd5e1;
+}
+.message{min-height:120px;padding:18px;font-size:clamp(22px,2.4vh,34px);line-height:1.35}
+.arrival-banner{width:100%;height:100%;min-height:150px;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px 6px;font-size:clamp(44px,6.2vh,88px);font-weight:1000;line-height:1.02;letter-spacing:.01em;text-transform:uppercase;color:#fff;text-shadow:0 3px 0 #000,0 0 22px #60a5fa;animation:arrivalPop .18s ease-out}
+@keyframes arrivalPop{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:scale(1)}}
+.actions{min-height:72px;gap:16px;padding:0 2% 0}.actions button,.control-btn,.confirm-btn{min-height:66px;min-width:150px;font-size:clamp(17px,1.8vh,23px)}
+/* right information column */
+.side{
+  position:relative;top:auto;height:100vh;max-height:none;overflow:hidden;padding:10px 12px 10px 14px;
+  display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px;background:linear-gradient(180deg,#0b1726,#07111f);border-left:2px solid #28435b
+}
+.side-title{font-size:clamp(15px,1.7vh,22px);margin:0;padding:2px 4px;color:#dbeafe}
+#playersHistory{min-height:0;display:grid;grid-template-rows:repeat(var(--player-count,2),minmax(0,1fr));gap:8px;overflow:hidden}
+.history-card{min-height:0;border-radius:14px;padding:9px 11px;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
+.history-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;margin:0 0 6px;font-weight:1000}
+.history-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1;text-shadow:0 2px 3px #000b}
+.history-money{font-variant-numeric:tabular-nums;background:#06101ce6;border:2px solid #ffffff66;border-radius:12px;font-weight:1000;line-height:1;padding:.15em .35em;white-space:nowrap;box-shadow:0 4px 12px #0005}
+.history-table-wrap{min-height:0;overflow:auto;border-radius:9px;background:#06101cb5}
+.history-table{font-size:clamp(8px,.92vh,11px);background:transparent}.history-table th,.history-table td{padding:3px 5px}.history-table th:last-child,.history-table td:last-child{width:64px}
+#playersHistory[data-count="2"] .history-name{font-size:clamp(38px,5.4vh,66px)}#playersHistory[data-count="2"] .history-money{font-size:clamp(36px,5vh,62px)}
+#playersHistory[data-count="3"] .history-name{font-size:clamp(32px,4.3vh,54px)}#playersHistory[data-count="3"] .history-money{font-size:clamp(30px,4vh,50px)}
+#playersHistory[data-count="4"] .history-name{font-size:clamp(27px,3.4vh,44px)}#playersHistory[data-count="4"] .history-money{font-size:clamp(25px,3.2vh,41px)}
+#playersHistory[data-count="5"] .history-name{font-size:clamp(23px,2.8vh,36px)}#playersHistory[data-count="5"] .history-money{font-size:clamp(22px,2.7vh,34px)}
+#playersHistory[data-count="6"] .history-name{font-size:clamp(20px,2.45vh,31px)}#playersHistory[data-count="6"] .history-money{font-size:clamp(19px,2.35vh,29px)}
+.syslog{padding:6px 9px;border-radius:10px}.syslog summary{font-size:12px}.syslog-body{max-height:90px;font-size:9px}
+/* landscape is the primary layout; only fall back if viewport is unusually narrow */
+@media(max-aspect-ratio:4/3){body{overflow:auto}#app{height:auto;min-height:100vh;grid-template-columns:1fr}.board-stage{--shell:min(100vw,100vh);margin:auto}.side{height:auto;max-height:none}.side{border-left:0;border-top:2px solid #28435b}#playersHistory{grid-template-rows:none;grid-template-columns:1fr 1fr;overflow:visible}.history-card{min-height:180px}}
+
+
+/* ===== V0.16: LANDSCAPE BOARD + SINGLE-LINE TILE NAMES + 2-ROW PLAYER GRID ===== */
+html,body{width:100%;height:100%;overflow:hidden}
+body{min-height:100vh;background:#06101c}
+
+/* Board touches the left edge and follows viewport height */
+#app{
+  width:100vw;height:100vh;max-width:none;margin:0;padding:0;gap:0;
+  display:grid;grid-template-columns:min(100vh,70vw) minmax(0,1fr);
+  align-items:stretch;overflow:hidden;
+}
+.board-stage{
+  width:min(100vh,70vw);height:min(100vh,70vw);min-width:0;
+  margin:0;padding:3px;align-self:start;justify-self:start;overflow:visible;
+}
+#board{
+  width:100%;height:100%;aspect-ratio:1/1;border-radius:8px;border:3px solid #20364a;
+  gap:2px;box-shadow:0 8px 30px #000b,inset 0 0 18px #0007;
+}
+
+/* Buyable tile names: ONE line, pinned to top. JS below shrinks only as much as needed. */
+.cell:not(.chance):not(.chest):not(.corner) .cell-name{
+  top:3px;left:3px;right:3px;height:auto;min-height:0;
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:clip;
+  padding:0 1px;line-height:1;font-size:18px;font-weight:1000;
+  text-align:center;letter-spacing:-.025em;
+}
+.cell:not(.chance):not(.chest):not(.corner) .model-wrap{top:24%;bottom:20px}
+
+/* Special non-buyable tiles: intentionally very different from properties */
+.cell.corner{
+  background:
+    radial-gradient(circle at 26% 18%,#fff1a8 0 8%,transparent 9%),
+    linear-gradient(135deg,#ffbf3f 0%,#ff7a00 52%,#e94700 100%)!important;
+  border:5px solid #151515!important;
+  box-shadow:inset 0 0 0 3px #ffd166,inset 0 0 22px #8f2b00aa;
+}
+.cell.corner .cell-name{
+  inset:0!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  white-space:normal!important;font-size:clamp(18px,1.55vw,30px)!important;
+  color:#111!important;text-shadow:0 2px 0 #ffd98a,1px 0 0 #ffd98a,-1px 0 0 #ffd98a!important;
+}
+.cell.chance{
+  background:
+    repeating-linear-gradient(45deg,#c91432 0 12px,#ef233c 12px 24px)!important;
+  border:5px solid #090909!important;
+  box-shadow:inset 0 0 0 3px #ffd166,inset 0 0 28px #4b0011aa;
+}
+.cell.chance .cell-name{
+  inset:0!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  color:#fff!important;white-space:normal!important;font-size:clamp(20px,1.7vw,32px)!important;
+  text-shadow:-2px -2px 0 #111,2px -2px 0 #111,-2px 2px 0 #111,2px 2px 0 #111!important;
+}
+.cell.chest{
+  background:
+    radial-gradient(circle at 20% 20%,#bff7ff 0 7%,transparent 8%),
+    linear-gradient(135deg,#17c3b2 0%,#27b7ff 48%,#4d5dfb 100%)!important;
+  border:5px solid #8b1e88!important;
+  box-shadow:inset 0 0 0 3px #ff5577,inset 0 0 28px #042e66aa;
+}
+.cell.chest .cell-name{
+  inset:0!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  color:#07111f!important;white-space:normal!important;font-size:clamp(20px,1.7vw,32px)!important;
+  text-shadow:-2px -2px 0 #ff6b85,2px -2px 0 #ff6b85,-2px 2px 0 #ff6b85,2px 2px 0 #ff6b85!important;
+}
+
+/* Keep property levels "outside the tile" but inside the board, toward the center */
+.edge-bottom .level-out{bottom:auto;top:-39px;left:50%;transform:translateX(-50%)}
+.edge-top .level-out{top:auto;bottom:-39px;left:50%;transform:translateX(-50%)}
+.edge-left .level-out{left:auto;right:-66px;top:50%;transform:translateY(-50%)}
+.edge-right .level-out{right:auto;left:-66px;top:50%;transform:translateY(-50%)}
+.edge-bottom .level-out.hotel,.edge-top .level-out.hotel{animation:none}
+.edge-left .level-out.hotel,.edge-right .level-out.hotel{animation:none}
+
+/* Larger numeric dice; roll and movement remain 1 second and movement is automatic */
+.dice-area{min-height:clamp(145px,18vh,190px);gap:34px}
+.die{
+  width:clamp(130px,15vh,170px);height:clamp(130px,15vh,170px);
+  border-radius:24px;font-size:clamp(88px,10.5vh,122px);line-height:1;font-weight:1000;
+}
+.arrival-banner{
+  width:100%;height:100%;min-height:160px;padding:10px 3px;
+  font-size:clamp(52px,7vh,102px);white-space:normal;
+}
+
+/* Center card chooser uses essentially the whole center. */
+.center-card-mode{padding:4px!important}
+.center-card-mode #message{padding:3px!important;border:0!important;background:#06101c!important}
+.card-picker-wrap{position:relative;width:100%;height:100%;display:block!important}
+.card-picker-title{
+  position:absolute;z-index:10;left:8px;top:7px;
+  padding:5px 9px;border-radius:8px;background:#07111fd9;border:1px solid #ffffff55;
+  font-size:clamp(14px,1.2vw,20px);line-height:1;color:#fff
+}
+.card-picker-sub{
+  position:absolute;z-index:10;right:8px;top:7px;
+  max-width:48%;padding:5px 8px;border-radius:8px;background:#07111fd9;border:1px solid #ffffff44;
+  font-size:clamp(10px,.78vw,13px);line-height:1.1;color:#e2e8f0
+}
+.card-picker-grid{
+  position:absolute;inset:0;width:100%;height:100%;
+  display:grid;grid-template-columns:repeat(var(--card-cols,5),minmax(0,1fr));
+  grid-template-rows:repeat(var(--card-rows,4),minmax(0,1fr));
+  gap:9px;padding:8px;place-items:center;overflow:hidden;
+}
+.hidden-card{
+  width:92%;height:auto;aspect-ratio:1/1;max-width:100%;max-height:100%;
+  border-radius:8px;border:3px solid #ffffff6e;
+}
+.card-sign{background-size:cover}
+
+/* Right side: player cards use all available space. 2 rows maximum for 3-6 players. */
+.side{
+  position:relative;top:auto;height:100vh;max-height:none;overflow:hidden;
+  padding:8px 9px 7px 11px;display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;gap:6px;
+  background:linear-gradient(180deg,#0b1726,#07111f);
+  border-left:2px solid #28435b;
+}
+.side-title{font-size:clamp(13px,1.4vh,18px);margin:0;padding:1px 3px}
+#playersHistory{
+  min-height:0;display:grid;
+  grid-template-columns:repeat(var(--player-cols,2),minmax(0,1fr));
+  grid-template-rows:repeat(var(--player-rows,2),minmax(0,1fr));
+  gap:8px;overflow:hidden;
+}
+.history-card{
+  min-width:0;min-height:0;border-radius:15px;padding:9px;
+  display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;
+}
+.history-head{
+  display:flex;flex-direction:column;align-items:stretch;justify-content:center;
+  gap:5px;margin:0 0 7px;text-align:center;
+}
+.history-name{
+  display:block;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  line-height:.98;font-weight:1000;text-align:center;text-shadow:0 2px 4px #000d;
+}
+.history-money{
+  display:block;width:100%;padding:.12em .18em;
+  text-align:center;font-variant-numeric:tabular-nums;background:#06101ce8;
+  border:2px solid #ffffff70;border-radius:10px;font-weight:1000;line-height:1;
+}
+.history-table-wrap{min-height:0;overflow:auto;border-radius:8px;background:#06101cb8}
+.history-table{font-size:clamp(7px,.78vh,10px);background:transparent}
+.history-table th,.history-table td{padding:2px 4px;line-height:1.15}
+.history-table th:last-child,.history-table td:last-child{width:58px}
+.tx{min-width:49px;padding:1px 4px}
+
+/* Name and money are the visual priority, adjusted to number of players */
+#playersHistory[data-count="2"] .history-name{font-size:clamp(38px,5.2vh,64px)}
+#playersHistory[data-count="2"] .history-money{font-size:clamp(36px,5vh,60px)}
+#playersHistory[data-count="3"] .history-name,#playersHistory[data-count="4"] .history-name{font-size:clamp(28px,3.7vh,46px)}
+#playersHistory[data-count="3"] .history-money,#playersHistory[data-count="4"] .history-money{font-size:clamp(27px,3.5vh,44px)}
+#playersHistory[data-count="5"] .history-name,#playersHistory[data-count="6"] .history-name{font-size:clamp(22px,2.9vh,36px)}
+#playersHistory[data-count="5"] .history-money,#playersHistory[data-count="6"] .history-money{font-size:clamp(21px,2.75vh,34px)}
+.syslog{padding:4px 7px;border-radius:8px}.syslog summary{font-size:10px}.syslog-body{max-height:70px;font-size:8px}
+
+/* Only narrow/portrait screens fall back below the board */
+@media(max-aspect-ratio:4/3){
+  html,body{overflow:auto}
+  #app{height:auto;min-height:100vh;grid-template-columns:1fr}
+  .board-stage{width:min(100vw,100vh);height:min(100vw,100vh);margin:auto}
+  .side{height:auto;max-height:none;border-left:0;border-top:2px solid #28435b}
+  #playersHistory{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;overflow:visible}
+  .history-card{min-height:220px}
+}
+
+
+/* ===== V0.17: BIG CARD REVEAL + METRO GRID ===== */
+.cell.corner .cell-name,.cell.chance .cell-name,.cell.chest .cell-name{
+  padding:4px!important;overflow:hidden!important;line-height:1!important;
+}
+
+/* Card opened: content fills the center, title and accept are large */
+.card-reveal{
+  width:99%;height:100%;max-height:none;margin:0 auto;
+  display:grid;grid-template-columns:minmax(0,58%) minmax(0,42%);
+  gap:18px;align-items:stretch;padding:14px;border-radius:18px;
+}
+.card-reveal-art{
+  width:100%;height:100%;min-height:0;aspect-ratio:auto;
+  display:flex;align-items:center;justify-content:center;background:#fff;
+}
+.card-reveal-art img{width:100%;height:100%;object-fit:contain}
+.card-reveal-info{
+  min-width:0;display:flex;flex-direction:column;align-items:stretch;justify-content:center;
+  gap:16px;text-align:center;padding:8px;
+}
+.card-reveal-info h2{
+  margin:0;font-size:clamp(34px,4.8vh,62px);line-height:1.04;font-weight:1000;
+  color:#0f172a;
+}
+.card-reveal-info p{
+  margin:0;font-size:clamp(19px,2.4vh,30px);line-height:1.25;font-weight:850;color:#334155;
+}
+.card-accept-note{font-size:clamp(15px,1.8vh,22px);font-weight:850}
+.card-inline-accept{
+  width:100%;min-height:74px;margin-top:4px;border-radius:10px;
+  font-size:clamp(24px,3vh,38px);font-weight:1000;
+  background:linear-gradient(135deg,#22c55e,#15803d);color:#fff;
+  box-shadow:0 10px 24px #0004;
+}
+
+/* Metro chooser takes the whole center just like Chance/Chest.
+   The #center prefix is intentional: it overrides the portrait grid rows. */
+#center.center-metro-mode{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,1fr)!important;align-items:stretch!important;
+  padding:4px!important;overflow:hidden!important;
+}
+#center.center-metro-mode .brand,#center.center-metro-mode .dice-area,#center.center-metro-mode #confirmZone,#center.center-metro-mode #actions{display:none!important}
+#center.center-metro-mode #message{
+  display:block!important;grid-column:1!important;grid-row:1!important;
+  width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;padding:3px!important;
+  border:0!important;background:#06101c!important;overflow:hidden!important;
+}
+.metro-picker-wrap{position:relative;width:100%;height:100%;min-width:0;min-height:0;display:block}
+.metro-picker-title{
+  position:absolute;z-index:10;left:8px;top:7px;padding:6px 10px;border-radius:8px;
+  background:#07111fe8;color:#fff;border:1px solid #ffffff55;
+  font-size:clamp(16px,1.35vw,22px);font-weight:1000;
+}
+.metro-picker-sub{
+  position:absolute;z-index:10;right:8px;top:7px;max-width:58%;
+  padding:6px 10px;border-radius:8px;background:#07111fe8;color:#e2e8f0;
+  border:1px solid #ffffff44;font-size:clamp(11px,.9vw,15px);font-weight:850;
+}
+.metro-picker-grid{
+  position:absolute;inset:0;display:grid;align-content:center;
+  grid-template-columns:repeat(var(--metro-cols,6),minmax(0,1fr));
+  grid-template-rows:repeat(var(--metro-rows,7),auto);
+  gap:7px;padding:42px 8px 8px;overflow:hidden;
+}
+.metro-target{
+  position:relative;width:100%;height:auto;aspect-ratio:1/1;min-width:0;min-height:0;padding:5px 3px 3px;
+  border-radius:8px;border:2px solid #67e8f9;
+  background:linear-gradient(145deg,#0f4c5c,#0b7285);
+  color:#fff;font-size:clamp(9px,.76vw,13px);font-weight:950;line-height:1;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
+  box-shadow:inset 0 0 0 1px #ffffff35,0 4px 10px #0005;overflow:hidden;
+}
+.metro-target:hover{background:linear-gradient(145deg,#126782,#1597a8);transform:translateY(-2px)}
+.metro-target .metro-no{
+  position:absolute;left:2px;top:2px;display:block;margin:0;padding:1px 2px;border-radius:3px;
+  background:#06101c9c;font-size:.58em;color:#a5f3fc;font-weight:1000;line-height:1;
+}
+.metro-target .metro-name{display:block;width:100%;max-height:84%;overflow:hidden;white-space:normal;overflow-wrap:anywhere;word-break:normal;text-align:center;line-height:.96}
+@media(max-width:1100px){
+  .card-reveal{grid-template-columns:1fr;grid-template-rows:minmax(0,58%) minmax(0,42%)}
+  .card-reveal-info h2{font-size:clamp(25px,3.5vh,42px)}
+}
+
+
+/* ===== V0.19: TURN THEME + ASSET MANAGEMENT + JAIL FLOW ===== */
+#center{
+  --turn-color:#3b82f6;--turn-text:#fff;
+  background:#fff!important;color:#111827!important;
+  border:3px solid var(--turn-color)!important;
+  box-shadow:inset 0 0 0 1px #ffffff,0 5px 24px #0005!important;
+}
+#center .brand h1{color:#111827!important}.brand small{color:#64748b!important}
+.turn-pill{color:#111827;background:#f8fafc!important;border-color:#cbd5e1!important}
+.message{background:#fff!important;color:#111827!important;border:1px solid #d7dee8!important;box-shadow:0 4px 14px #00000012}
+.message strong{color:var(--turn-color)!important;text-shadow:none!important}
+.die{
+  background:var(--turn-color)!important;color:var(--turn-text)!important;
+  border:4px solid color-mix(in srgb,var(--turn-color),#000 24%)!important;
+  box-shadow:0 12px 30px #0005,inset 0 0 0 3px #ffffff75!important;
+}
+.die.rolling{box-shadow:0 16px 36px #0007,0 0 26px color-mix(in srgb,var(--turn-color),transparent 38%)!important}
+.arrival-banner{color:#111827!important;text-shadow:0 2px 0 #fff,0 0 18px color-mix(in srgb,var(--turn-color),transparent 55%)!important}
+.center-card-mode #message,.center-metro-mode #message{background:#fff!important}
+
+/* Asset manager shown before dice and after tile resolution */
+.asset-box{width:min(920px,97vw);max-height:94vh;overflow:auto;background:#fff;color:#0f172a;border-radius:20px;padding:18px;box-shadow:0 28px 90px #000a;border:3px solid var(--asset-color,#3b82f6)}
+.asset-head{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:8px}.asset-head h2{margin:0;font-size:27px}.asset-phase{font-size:13px;font-weight:900;color:#475569}
+.asset-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:9px 0 12px}.asset-stat{background:#eef3f8;border-radius:12px;padding:9px 12px;text-align:center}.asset-stat span{display:block;color:#64748b;font-size:12px;font-weight:900}.asset-stat b{display:block;margin-top:3px;font-size:25px}
+.asset-table{width:100%;border-collapse:collapse;font-size:13px}.asset-table th,.asset-table td{padding:8px 7px;border-bottom:1px solid #dbe2ea;text-align:left;vertical-align:middle}.asset-table th{font-size:12px;color:#475569}.asset-table td:nth-last-child(-n+2),.asset-table th:nth-last-child(-n+2){text-align:center;width:128px}
+.asset-action{display:inline-grid;grid-template-columns:34px auto;align-items:center;gap:5px}.asset-action button{width:34px;height:34px;padding:0;border-radius:8px;font-size:20px;font-weight:1000}.asset-value{font-size:11px;font-weight:950;white-space:nowrap}.asset-value.pluscash{color:#067647}.asset-value.minuscash{color:#b42318}.asset-muted{color:#94a3b8}
+.asset-note{margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.35}.asset-actions{display:flex;justify-content:flex-end;margin-top:13px}.asset-commit{min-width:260px;min-height:58px;font-size:21px;font-weight:1000;border-radius:10px;background:linear-gradient(135deg,var(--asset-color,#2563eb),color-mix(in srgb,var(--asset-color,#2563eb),#000 24%));color:#fff}
+
+/* Card backs use the supplied red/blue sign artwork without extra numbering */
+.hidden-card{background:#fff!important;border:4px solid #fff!important;box-shadow:0 6px 16px #0005!important}
+.card-picker-wrap.chance .hidden-card{outline:2px solid #ef233c}.card-picker-wrap.chest .hidden-card{outline:2px solid #155e75}
+.card-sign{inset:0!important;background-size:cover!important;background-position:center!important}
+.card-number{display:none!important}
+.card-reveal{background:#fff!important;color:#111827!important;border-color:#dbe2ea!important}
+.card-reveal-info{justify-content:center!important}.card-reveal-info h2{font-size:clamp(38px,5.3vh,68px)!important;line-height:1.05!important;color:#111827!important}.card-reveal-info p,.card-accept-note{display:none!important}.card-inline-accept{min-height:80px!important;font-size:clamp(26px,3.2vh,40px)!important}
+
+/* Jail third-attempt choice */
+.jail-attempt{font-size:clamp(28px,3.2vw,46px);font-weight:1000}.jail-sub{margin-top:10px;font-size:clamp(17px,1.6vw,24px);color:#475569}
+
+
+/* ===== V0.20: new card art + centered house-level badges ===== */
+.hidden-card{aspect-ratio:1/1!important;border-radius:14px!important;overflow:hidden!important;background:#fff!important;border:3px solid #fff!important;box-shadow:0 10px 18px #0004!important}.card-sign{background-size:cover!important;background-position:center!important}.card-picker-grid{padding:10px!important;gap:10px!important}
+.level-out{position:absolute;z-index:95;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;gap:2px;padding:4px 8px;border-radius:999px;background:#ffffffee;border:2px solid currentColor;box-shadow:0 4px 12px #00000026;font-weight:1000;white-space:nowrap;pointer-events:none;text-shadow:none!important}.level-out .star{font-size:18px;line-height:1;color:inherit;filter:drop-shadow(0 1px 0 #fff)}.level-out .mort-txt{font-size:11px;letter-spacing:.02em}.level-out.hotel{padding:3px 7px;border-radius:10px}.level-out.hotel .hotel-frame{display:grid;place-items:center;width:24px;height:24px;border:2px solid currentColor;border-radius:7px;font-size:17px;line-height:1;font-weight:1000;color:inherit;background:#fff}.edge-bottom .level-out{top:-16px;left:50%;transform:translateX(-50%)}.edge-top .level-out{bottom:-16px;left:50%;transform:translateX(-50%)}.edge-left .level-out{right:-24px;top:50%;transform:translateY(-50%)}.edge-right .level-out{left:-24px;top:50%;transform:translateY(-50%)}
+.edge-bottom .level-out.hotel,.edge-top .level-out.hotel,.edge-left .level-out.hotel,.edge-right .level-out.hotel{animation:none!important}
+
+
+/* ===== V0.21: held cards + turn phase ===== */
+.player-held{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:2px}.held-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:999px;background:#07111fde;color:#fff;border:1px solid #ffffff77;font-size:clamp(8px,.75vh,11px);font-weight:1000;line-height:1}.double-next{font-size:clamp(34px,4.5vh,58px);font-weight:1000;color:#111827}.double-sub{margin-top:8px;font-size:clamp(16px,2vh,24px);color:#475569;font-weight:850}
+
+
+/* ===== V0.22: ASSET MANAGER LIVES INSIDE ACTIVE PLAYER CARD ===== */
+#playersHistory.asset-mode{
+  --other-count:1;
+  grid-template-columns:repeat(var(--other-count),minmax(0,1fr))!important;
+  grid-template-rows:minmax(0,3.3fr) minmax(74px,1fr)!important;
+  align-items:stretch;
+  gap:8px;
+}
+#playersHistory.asset-mode .history-card.asset-active{
+  grid-column:1 / -1!important;
+  grid-row:1!important;
+  min-height:0;
+  padding:10px 12px;
+  border:3px solid #fff;
+  box-shadow:0 0 0 4px #ffffff25,0 12px 30px #0007;
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+}
+#playersHistory.asset-mode .history-card.asset-other{
+  grid-row:2!important;
+  min-height:0;
+  padding:6px 7px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+#playersHistory.asset-mode .history-card.asset-other .history-head{
+  margin:0;width:100%;gap:2px;
+}
+#playersHistory.asset-mode .history-card.asset-other .history-name{
+  font-size:clamp(13px,1.65vh,22px)!important;
+}
+#playersHistory.asset-mode .history-card.asset-other .history-money{
+  font-size:clamp(13px,1.55vh,21px)!important;
+  padding:2px 5px;border-width:1px;
+}
+#playersHistory.asset-mode .history-card.asset-other .player-held,
+#playersHistory.asset-mode .history-card.asset-other .history-table-wrap{
+  display:none!important;
+}
+.asset-card-phase{
+  text-align:center;font-size:clamp(12px,1.3vh,16px);
+  font-weight:1000;background:#ffffffdc;color:#172033;
+  border-radius:8px;padding:5px 7px;margin:2px 0 6px;
+}
+.asset-card-money{
+  display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px;
+}
+.asset-card-stat{
+  background:#07111fd9;border:1px solid #ffffff65;border-radius:9px;
+  padding:4px 6px;text-align:center;color:#fff;
+}
+.asset-card-stat span{display:block;font-size:clamp(9px,1vh,12px);font-weight:850;opacity:.82}
+.asset-card-stat b{display:block;font-size:clamp(17px,2.2vh,28px);line-height:1.05;margin-top:1px}
+.asset-card-list{
+  min-height:0;overflow:hidden;
+  display:grid;
+  grid-template-rows:repeat(var(--asset-count,1),minmax(0,1fr));
+  gap:2px;
+  background:#07111f99;border-radius:9px;padding:4px;
+}
+.asset-card-row{
+  min-height:0;display:grid;grid-template-columns:minmax(0,1fr) auto auto;
+  align-items:center;gap:5px;
+  background:#ffffffed;color:#111827;border-radius:6px;padding:2px 5px;
+}
+.asset-card-name{
+  min-width:0;min-height:0;max-height:100%;
+  white-space:normal;overflow:hidden;text-overflow:clip;overflow-wrap:anywhere;
+  font-size:var(--asset-font,12px);font-weight:950;line-height:.94;
+}
+.asset-card-name small{
+  display:block;margin-top:1px;font-size:max(8px,calc(var(--asset-font,12px) - 3px));
+  color:#64748b;font-weight:800;white-space:normal;line-height:.92;
+}
+.asset-card-control{
+  display:grid;grid-template-columns:var(--asset-btn,30px) minmax(30px,auto);align-items:center;gap:2px;
+}
+.asset-card-control button{
+  width:var(--asset-btn,30px);height:var(--asset-btn,30px);padding:0;border-radius:5px;
+  font-size:max(13px,calc(var(--asset-btn,30px) * .62));font-weight:1000;
+  border:0;color:#fff;cursor:pointer;
+}
+.asset-card-control button:disabled{opacity:.28;cursor:not-allowed}
+.asset-card-control .minus{background:#d97706}
+.asset-card-control .plus{background:#2563eb}
+.asset-card-value{
+  font-size:max(8px,calc(var(--asset-font,12px) - 2px));font-weight:1000;
+  white-space:nowrap;text-align:right;color:#172033;
+}
+.asset-card-commit{
+  width:100%;min-height:48px;margin-top:7px;border-radius:9px;border:2px solid #ffffff9c;
+  color:#fff;font-size:clamp(18px,2.3vh,29px);font-weight:1000;
+  background:linear-gradient(135deg,var(--active-color,#2563eb),color-mix(in srgb,var(--active-color,#2563eb),#000 25%));
+  box-shadow:0 6px 14px #0004;
+}
+.asset-card-empty{
+  display:flex;align-items:center;justify-content:center;height:100%;
+  color:#e2e8f0;font-weight:900;font-size:14px;text-align:center;padding:10px;
+}
+#playersHistory.asset-mode[data-count="2"] .history-card.asset-active .history-name,
+#playersHistory.asset-mode[data-count="3"] .history-card.asset-active .history-name,
+#playersHistory.asset-mode[data-count="4"] .history-card.asset-active .history-name,
+#playersHistory.asset-mode[data-count="5"] .history-card.asset-active .history-name,
+#playersHistory.asset-mode[data-count="6"] .history-card.asset-active .history-name{
+  font-size:clamp(24px,3.3vh,42px)!important;
+}
+#playersHistory.asset-mode .history-card.asset-active .history-money{
+  font-size:clamp(22px,3vh,38px)!important;
+}
+@media(max-aspect-ratio:4/3){
+  #playersHistory.asset-mode{grid-template-columns:1fr!important;grid-template-rows:auto!important}
+  #playersHistory.asset-mode .history-card.asset-active,
+  #playersHistory.asset-mode .history-card.asset-other{grid-column:1!important;grid-row:auto!important}
+  #playersHistory.asset-mode .history-card.asset-other{min-height:70px}
+}
+
+
+/* ===== V0.23: during asset phase, active player stays right, all others move to center ===== */
+#playersHistory.asset-mode{
+  display:block!important;
+  height:100%;
+  overflow:hidden;
+}
+#playersHistory.asset-mode .history-card.asset-active{
+  width:100%;height:100%;min-height:0;
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr) auto!important;
+}
+#playersHistory.asset-mode .history-card.asset-other{display:none!important}
+
+#center.center-asset-mode{
+  padding:8px!important;
+  display:block!important;
+  overflow:hidden!important;
+  background:#fff!important;
+}
+#center.center-asset-mode .brand,
+#center.center-asset-mode .dice-area,
+#center.center-asset-mode #confirmZone,
+#center.center-asset-mode #actions{display:none!important;pointer-events:none!important}
+#center.center-asset-mode #message{
+  display:block!important;width:100%!important;height:100%!important;
+  min-height:0!important;padding:0!important;margin:0!important;
+  overflow:hidden!important;border:0!important;background:#f8fafc!important;
+  pointer-events:auto!important;
+}
+.asset-center-shell{
+  width:100%;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:7px;
+}
+.asset-center-title{
+  font-size:clamp(18px,2.2vh,28px);font-weight:1000;color:#172033;
+  text-align:center;padding:5px 8px;border-radius:8px;background:#eef2f7;border:1px solid #d4dde8;
+}
+.asset-center-grid{
+  min-height:0;display:grid;
+  grid-template-columns:repeat(var(--center-cols,2),minmax(0,1fr));
+  grid-template-rows:repeat(var(--center-rows,2),minmax(0,1fr));
+  gap:8px;overflow:hidden;
+}
+.center-player-card{
+  min-width:0;min-height:0;border-radius:13px;padding:9px;
+  display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;
+  border:3px solid #ffffffcc;box-shadow:0 7px 18px #0003;
+}
+.center-player-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin-bottom:6px}
+.center-player-name{
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:clamp(22px,3.7vh,48px);font-weight:1000;line-height:1;color:#fff;text-shadow:0 2px 4px #000a;
+}
+.center-player-money{
+  white-space:nowrap;padding:4px 8px;border-radius:8px;background:#07111fe8;color:#fff;
+  font-size:clamp(20px,3.2vh,42px);font-weight:1000;line-height:1;border:1px solid #ffffff66;
+}
+.center-player-held{grid-column:1/-1;min-height:20px}
+.center-player-history{min-height:0;overflow:hidden;background:#07111fb8;border-radius:8px;padding:4px}
+.center-player-history table{width:100%;border-collapse:collapse;color:#fff;font-size:clamp(8px,1.1vh,12px)}
+.center-player-history td{padding:2px 4px;border-bottom:1px solid #ffffff1a;line-height:1.1}
+.center-player-history td:last-child{text-align:right;white-space:nowrap;font-weight:900}
+.center-player-nohistory{height:100%;display:grid;place-items:center;color:#dbeafe;font-size:12px;font-weight:850}
+@media(max-aspect-ratio:4/3){
+  #center.center-asset-mode{min-height:420px}
+  .asset-center-grid{grid-template-columns:1fr!important;grid-template-rows:none!important;overflow:auto!important}
+  .center-player-card{min-height:150px}
+}
+
+
+/* ===== V0.24: PRE-ASSET IN CENTER, POST-ASSET ON RIGHT ===== */
+#center.center-asset-pre-mode,
+#center.center-asset-post-mode{
+  padding:8px!important;overflow:hidden!important;background:#fff!important;
+}
+#center.center-asset-pre-mode .brand,
+#center.center-asset-pre-mode .dice-area,
+#center.center-asset-pre-mode #confirmZone,
+#center.center-asset-pre-mode #actions,
+#center.center-asset-post-mode .brand,
+#center.center-asset-post-mode .dice-area,
+#center.center-asset-post-mode #confirmZone,
+#center.center-asset-post-mode #actions{
+  display:none!important;pointer-events:none!important;
+}
+#center.center-asset-pre-mode #message,
+#center.center-asset-post-mode #message{
+  display:block!important;width:100%!important;height:100%!important;min-height:0!important;
+  padding:0!important;margin:0!important;overflow:hidden!important;border:0!important;background:#f8fafc!important;
+}
+.center-asset-pre-shell{
+  --active-color:#2563eb;width:100%;height:100%;min-height:0;
+  display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;gap:6px;
+  padding:10px;border:3px solid var(--active-color);border-radius:16px;background:#fff;
+}
+.center-asset-pre-head{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;
+  padding:4px 2px 2px;
+}
+.center-asset-pre-name{
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:clamp(24px,3.3vh,42px);font-weight:1000;line-height:1;color:#111827;
+}
+.center-asset-pre-cash{
+  white-space:nowrap;padding:5px 10px;border-radius:10px;background:#07111f;color:#fff;
+  font-size:clamp(22px,3vh,38px);font-weight:1000;line-height:1;
+}
+.center-asset-pre-shell .asset-card-phase{margin:0}
+.center-asset-pre-shell .asset-card-list{min-height:0;height:100%}
+.center-asset-pre-shell .asset-card-commit{margin-top:0}
+.center-asset-pre-shell .asset-card-name small{display:none}
+.center-asset-pre-shell .asset-card-list.asset-dense{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(var(--asset-rows,1),minmax(0,1fr));
+  grid-auto-flow:column;
+}
+.center-asset-pre-shell .asset-card-list.asset-dense .asset-card-value,
+.center-asset-pre-shell .asset-card-list.asset-dense .asset-card-name small{display:none}
+.center-asset-pre-shell .asset-card-list.asset-dense .asset-card-control,
+.center-asset-pre-shell .asset-card-list.asset-dense .asset-card-sell{grid-template-columns:auto}
+.center-asset-post-lock{
+  width:100%;height:100%;display:grid;place-items:center;text-align:center;padding:24px;
+  color:#64748b;font-weight:900;font-size:clamp(18px,2.2vh,30px);line-height:1.3;
+}
+.center-asset-post-lock b{display:block;color:#111827;font-size:clamp(25px,3.2vh,44px);margin-bottom:8px}
+/* In PRE phase, right-side player cards stay in their normal layout. */
+#playersHistory.pre-asset-side-normal{display:grid!important}
+
+
+/* ===== V0.25: INNER PLAYER RING + IN-TILE BUILDING LEVELS ===== */
+#board{--ring-w:clamp(28px,3.7vh,40px)}
+#center{
+  margin:var(--ring-w)!important;
+  border-radius:22px!important;
+  overflow:hidden!important;
+}
+
+/* 40-segment inner ring between properties and center */
+.ring-slot{
+  position:absolute;z-index:35;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,#f8fafc,#dce5ee);
+  border:1px solid #8291a3;
+  box-shadow:inset 0 0 0 1px #ffffffb8;
+  overflow:visible;pointer-events:none;
+}
+.ring-slot.corner-ring{border-radius:8px}
+.ring-slot.current-ring{box-shadow:inset 0 0 0 2px var(--ring-color,#2563eb),0 0 8px color-mix(in srgb,var(--ring-color,#2563eb),transparent 45%)}
+.ring-pawns{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  gap:0;overflow:visible;
+}
+.ring-pawn{
+  --scale:1;
+  position:relative;
+  width:clamp(15px,calc(72px / var(--n,1)),28px);
+  height:30px;
+  margin-left:-2px;
+  overflow:visible;
+  flex:0 0 auto;
+  z-index:2;
+}
+.ring-pawn:first-child{margin-left:0}
+.ring-figure{
+  position:absolute;left:50%;top:50%;
+  width:24px;height:30px;
+  transform-origin:center;
+  filter:drop-shadow(0 2px 2px #0007);
+}
+.ring-head{
+  position:absolute;left:7px;top:0;width:10px;height:10px;border-radius:50%;
+  background:var(--pc);border:1.5px solid #fff;z-index:3;
+}
+.ring-body{
+  position:absolute;left:3px;top:9px;width:18px;height:18px;border-radius:8px 8px 5px 5px;
+  background:var(--pc);border:1.5px solid #fff;
+}
+.ring-name{
+  position:absolute;z-index:5;left:50%;bottom:-7px;transform:translateX(-50%);
+  max-width:52px;padding:1px 3px;border-radius:4px;background:#020617e8;color:#fff;
+  font-size:7px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border:1px solid #ffffff55;
+}
+.ring-pawn.active .ring-head{box-shadow:0 0 14px 5px #fff59dcc}
+.ring-pawn.active::after{
+  content:"";position:absolute;z-index:-1;left:50%;top:50%;width:36px;height:36px;
+  transform:translate(-50%,-50%);border-radius:50%;box-shadow:0 0 18px 7px #fff59d7a;
+}
+.ring-slot.edge-bottom .ring-figure{transform:translate(-50%,-78%) rotate(0deg)}
+.ring-slot.edge-top .ring-figure{transform:translate(-50%,-22%) rotate(180deg)}
+.ring-slot.edge-left .ring-figure{transform:translate(-18%,-50%) rotate(90deg)}
+.ring-slot.edge-right .ring-figure{transform:translate(-82%,-50%) rotate(-90deg)}
+
+/* Pawns no longer live inside property cells */
+.tokens{display:none!important}
+
+/* Building level now sits INSIDE the property, directly under the name */
+.level-in{
+  position:absolute;z-index:16;top:18px;left:3px;right:3px;
+  min-height:23px;display:flex;align-items:flex-start;justify-content:center;
+  color:#fbbf24;text-align:center;pointer-events:none;
+}
+.level-in.hidden{display:none!important}
+.level-in .house-stars{
+  display:flex;align-items:center;justify-content:center;gap:1px;
+  font-size:clamp(14px,1.05vw,20px);line-height:1;
+  text-shadow:-1px -1px 0 #111,1px -1px 0 #111,-1px 1px 0 #111,1px 1px 0 #111,0 0 4px #fff;
+}
+.level-in.hotel{
+  height:31px;flex-direction:column;gap:0;
+}
+.level-in.hotel .star-row{
+  display:flex;justify-content:center;gap:1px;height:15px;line-height:14px;
+  font-size:clamp(12px,.95vw,18px);
+  text-shadow:-1px -1px 0 #111,1px -1px 0 #111,-1px 1px 0 #111,1px 1px 0 #111,0 0 4px #fff;
+}
+.level-in.mort{
+  color:#dc2626!important;font-size:clamp(10px,.75vw,14px);font-weight:1000;
+  text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff;
+  letter-spacing:.02em;align-items:center;
+}
+/* red diagonal slash for mortgaged properties */
+.mortgage-x{
+  display:block;position:absolute;z-index:15;left:50%;top:53%;
+  width:132%;height:5px;border-radius:999px;background:#dc2626;
+  transform:translate(-50%,-50%) rotate(-37deg);
+  box-shadow:0 0 0 1px #fff8,0 2px 5px #0005;
+  font-size:0;color:transparent;pointer-events:none;
+}
+.mortgage-x.hidden{display:none!important}
+
+/* Make room for the in-tile stars */
+.cell:not(.chance):not(.chest):not(.corner) .model-wrap{top:34%!important;bottom:20px!important}
+
+/* Sell-out control in asset manager */
+.asset-card-row{grid-template-columns:minmax(0,1fr) auto auto auto!important}
+.asset-card-sell{
+  display:grid;grid-template-columns:auto minmax(34px,auto);align-items:center;gap:2px;
+}
+.asset-card-sell button{
+  height:var(--asset-btn,30px);min-width:42px;padding:0 5px;border:0;border-radius:5px;
+  background:#b91c1c;color:#fff;font-size:max(9px,calc(var(--asset-btn,30px) * .42));
+  font-weight:1000;cursor:pointer;
+}
+.asset-card-sell button.undo{background:#475569}
+.asset-card-sell button:disabled{opacity:.28;cursor:not-allowed}
+.asset-card-sell .asset-card-value{color:#991b1b}
+
+/* ===== V0.26: OPTIONAL ASSET MANAGER LAUNCHERS ===== */
+.post-turn-controls{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin-top:7px;
+}
+.post-turn-controls button{
+  min-width:0;min-height:46px;padding:6px 8px;border:2px solid #ffffff99;border-radius:9px;
+  color:#fff;font-size:clamp(12px,1.5vh,18px);font-weight:1000;line-height:1.05;
+}
+.post-turn-controls .manage-assets{background:linear-gradient(135deg,#0ea5e9,#2563eb)}
+.post-turn-controls .finish-turn{background:linear-gradient(135deg,#22c55e,#15803d)}
+#playersHistory.post-menu-mode .history-card.current{
+  grid-template-rows:auto minmax(0,1fr) auto!important;
+  border:3px solid #fff;box-shadow:0 0 0 3px #ffffff24,0 8px 22px #0005;
+}
+.turn-gate-note{font-weight:900;color:#334155}
+.turn-gate-note b{display:block;margin-bottom:5px;font-size:1.22em;color:#111827}
+
+
+/* ===== MOBILE LANDSCAPE EDITION ===== */
+@media (orientation:landscape) and (max-height:650px){
+  html,body{width:100%;height:100%;min-height:0;overflow:hidden}
+  body{background:#06101c}
+  #app{
+    width:100vw;height:100dvh;min-height:0;max-width:none;
+    display:grid!important;
+    grid-template-columns:min(100dvh,58vw) minmax(0,1fr)!important;
+    gap:0!important;padding:0!important;margin:0!important;overflow:hidden!important;
+  }
+  .board-stage{
+    --phone-board:min(100dvh,58vw);
+    width:var(--phone-board)!important;height:var(--phone-board)!important;
+    min-width:0!important;max-width:none!important;padding:2px!important;margin:0!important;
+    align-self:start!important;justify-self:start!important;overflow:visible!important;
+  }
+  #board{
+    --ring-w:18px!important;
+    width:100%!important;height:100%!important;
+    border-width:2px!important;border-radius:7px!important;
+    gap:1px!important;
+  }
+  #center{
+    margin:18px!important;padding:5px!important;gap:4px!important;
+    border-width:2px!important;border-radius:10px!important;
+    grid-template-rows:auto auto minmax(0,1fr) auto!important;
+    overflow:hidden!important;
+  }
+
+  /* Prioritize legibility of tile names over decorative landmark models. */
+  .model-wrap{display:none!important}
+  .cell{border-width:1px!important;border-radius:3px!important}
+  .cell-inner{border-radius:2px!important}
+  .cell:not(.chance):not(.chest):not(.corner) .cell-name{
+    top:2px!important;left:2px!important;right:2px!important;height:62%!important;
+    display:flex!important;align-items:flex-start!important;justify-content:center!important;
+    white-space:normal!important;overflow:hidden!important;text-overflow:clip!important;
+    padding:0 1px!important;line-height:.92!important;letter-spacing:-.02em!important;
+    font-size:7px!important;font-weight:1000!important;
+  }
+  .cell.airport .cell-name,
+  .cell.chance .cell-name,
+  .cell.chest .cell-name,
+  .cell.corner .cell-name{
+    inset:2px!important;height:calc(100% - 4px)!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    white-space:normal!important;line-height:.92!important;padding:1px!important;
+    font-size:8px!important;
+  }
+  .cell.tax .cell-name,.cell.utility .cell-name{height:55%!important}
+  .cell-price{
+    left:1px!important;right:1px!important;bottom:1px!important;
+    font-size:6.5px!important;line-height:1!important;
+  }
+  .cell-price.rent{font-size:7px!important}
+  .level-in{
+    top:58%!important;left:1px!important;right:1px!important;min-height:9px!important;
+  }
+  .level-in .house-stars{font-size:7px!important;gap:0!important}
+  .level-in.hotel{height:16px!important}
+  .level-in.hotel .star-row{font-size:6.5px!important;height:7px!important;line-height:7px!important}
+  .level-in.mort{font-size:5.5px!important}
+  .mortgage-x{height:2px!important}
+
+  /* Player ring is thinner on a phone. */
+  .ring-pawn{width:16px!important;height:20px!important;margin-left:-3px!important}
+  .ring-figure{width:17px!important;height:21px!important}
+  .ring-head{left:5px!important;top:0!important;width:7px!important;height:7px!important;border-width:1px!important}
+  .ring-body{left:2px!important;top:6px!important;width:13px!important;height:13px!important;border-width:1px!important}
+  .ring-name{display:none!important}
+  .ring-pawn.active::after{width:22px!important;height:22px!important;box-shadow:0 0 9px 4px #fff59d6e!important}
+
+  /* Center panel: everything must stay inside its box. */
+  .brand{gap:4px!important;align-items:flex-start!important;min-width:0}
+  .brand>div:first-child{min-width:0}
+  .brand h1{
+    margin:0!important;max-width:170px!important;
+    font-size:clamp(13px,4.5dvh,19px)!important;line-height:.94!important;
+    letter-spacing:0!important;white-space:normal!important;overflow-wrap:anywhere!important;
+  }
+  .brand small{font-size:6.5px!important;line-height:1!important}
+  .turn-pill{
+    max-width:92px!important;padding:3px 5px!important;border-radius:6px!important;
+    font-size:7.5px!important;line-height:1.05!important;
+    white-space:normal!important;text-align:center!important;
+  }
+  .dice-area{min-height:58px!important;height:58px!important;gap:10px!important}
+  .die{
+    width:52px!important;height:52px!important;border-radius:10px!important;
+    border-width:2px!important;font-size:36px!important;line-height:1!important;
+  }
+  .message{
+    min-height:0!important;height:100%!important;padding:5px!important;border-radius:7px!important;
+    font-size:10.5px!important;line-height:1.18!important;overflow:hidden!important;
+  }
+  .message strong{font-size:1.08em!important}
+  .arrival-banner{
+    min-height:0!important;height:100%!important;padding:3px!important;
+    font-size:clamp(21px,7dvh,30px)!important;line-height:1!important;
+    overflow:hidden!important;
+  }
+  .actions{
+    min-height:36px!important;gap:5px!important;padding:0!important;align-items:end!important;
+  }
+  .actions button,.control-btn,.confirm-btn{
+    min-width:0!important;width:100%!important;min-height:34px!important;height:34px!important;
+    padding:3px 5px!important;border-radius:5px!important;
+    font-size:9px!important;line-height:1!important;
+  }
+
+  /* Card and Metro screens use compact typography. */
+  .card-picker-title,.metro-picker-title{font-size:10px!important;padding:3px 5px!important}
+  .card-picker-sub,.metro-picker-sub{font-size:7px!important;padding:3px 5px!important}
+  .card-picker-grid{gap:4px!important;padding:28px 4px 4px!important}
+  .hidden-card{border-width:2px!important;border-radius:5px!important}
+  .card-reveal{padding:5px!important;gap:6px!important;border-width:2px!important;border-radius:8px!important}
+  .card-reveal-info{gap:5px!important;padding:2px!important}
+  .card-reveal-info h2{font-size:15px!important;line-height:1!important}
+  .card-inline-accept{min-height:34px!important;font-size:11px!important}
+  .metro-picker-grid{gap:3px!important;padding:27px 4px 4px!important}
+  .metro-target{padding:2px!important;border-width:1px!important;border-radius:4px!important;font-size:6.5px!important}
+
+  /* Right panel: responsive, no horizontal clipping. */
+  .side{
+    top:0!important;margin:0!important;width:100%!important;height:100dvh!important;min-width:0!important;max-height:none!important;
+    padding:5px 5px 4px 7px!important;gap:4px!important;
+    grid-template-rows:auto minmax(0,1fr)!important;overflow:hidden!important;
+  }
+  .side-title{font-size:9px!important;margin:0!important;padding:0 2px!important;line-height:1.1}
+  .syslog{display:none!important}
+  #playersHistory{
+    width:100%!important;min-width:0!important;min-height:0!important;
+    gap:5px!important;overflow:hidden!important;
+  }
+  .history-card{
+    min-width:0!important;min-height:0!important;border-radius:8px!important;
+    padding:5px!important;grid-template-rows:auto minmax(0,1fr)!important;
+  }
+  .history-head{
+    width:100%!important;display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-rows:auto auto!important;
+    align-items:center!important;gap:2px 5px!important;margin:0 0 4px!important;text-align:left!important;
+  }
+  .history-name{
+    grid-column:1!important;grid-row:1!important;
+    width:auto!important;text-align:left!important;
+    font-size:13px!important;line-height:1!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+  .history-money{
+    grid-column:2!important;grid-row:1!important;
+    width:auto!important;min-width:72px!important;
+    padding:3px 6px!important;border-width:1px!important;border-radius:7px!important;
+    text-align:center!important;font-size:20px!important;line-height:1!important;
+  }
+  .player-held{
+    grid-column:1/-1!important;grid-row:2!important;
+    min-height:0!important;margin:0!important;
+  }
+  .held-badge{font-size:6.5px!important;padding:1px 3px!important}
+  .history-table-wrap{
+    min-height:0!important;overflow:hidden!important;border-radius:5px!important;
+  }
+  .history-table{
+    width:100%!important;font-size:9px!important;line-height:1.05!important;
+  }
+  .history-table th,.history-table td{
+    padding:3px 4px!important;line-height:1.05!important;
+  }
+  .history-table th:last-child,.history-table td:last-child{width:52px!important}
+  .tx{min-width:42px!important;padding:1px 3px!important;font-size:8.5px!important}
+
+  /* More history space when there are only 2–4 players. */
+  #playersHistory[data-count="2"] .history-table{font-size:10.5px!important}
+  #playersHistory[data-count="3"] .history-table,
+  #playersHistory[data-count="4"] .history-table{font-size:9.5px!important}
+  #playersHistory[data-count="5"] .history-table,
+  #playersHistory[data-count="6"] .history-table{font-size:8px!important}
+
+  /* Override giant desktop name/money rules. */
+  #playersHistory[data-count] .history-name{font-size:13px!important}
+  #playersHistory[data-count] .history-money{font-size:20px!important}
+
+  /* PRE asset manager inside center must also fit. */
+  #center.center-asset-pre-mode{padding:3px!important}
+  .center-asset-pre-shell{
+    gap:3px!important;padding:5px!important;border-width:2px!important;border-radius:8px!important;
+  }
+  .center-asset-pre-head{gap:4px!important;padding:0!important}
+  .center-asset-pre-name{font-size:13px!important}
+  .center-asset-pre-cash{font-size:15px!important;padding:3px 5px!important}
+  .asset-card-phase{font-size:7px!important;padding:2px 4px!important;margin:0!important}
+  .asset-card-money{gap:3px!important;margin-bottom:2px!important}
+  .asset-card-stat{padding:2px 3px!important;border-radius:5px!important}
+  .asset-card-stat span{font-size:6px!important}
+  .asset-card-stat b{font-size:11px!important}
+  .asset-card-list{gap:1px!important;padding:2px!important;border-radius:5px!important}
+  .asset-card-row{gap:2px!important;padding:1px 2px!important;border-radius:3px!important}
+  .asset-card-name{font-size:var(--asset-font-mobile,7px)!important;line-height:.91!important}
+  .asset-card-name small{font-size:5.5px!important;margin-top:0!important}
+  .asset-card-control{gap:1px!important;grid-template-columns:17px minmax(25px,auto)!important}
+  .asset-card-control button{width:17px!important;height:17px!important;font-size:11px!important;border-radius:3px!important}
+  .asset-card-sell{gap:1px!important;grid-template-columns:auto minmax(24px,auto)!important}
+  .asset-card-sell button{height:17px!important;min-width:30px!important;font-size:6px!important;padding:0 2px!important}
+  .asset-card-value{font-size:5.5px!important}
+  .asset-card-commit{min-height:30px!important;height:30px!important;margin-top:2px!important;font-size:10px!important}
+  .center-asset-pre-shell .asset-card-list.asset-dense{gap:1px 2px!important}
+  .center-asset-pre-shell .asset-card-list.asset-dense .asset-card-row{padding:1px!important;gap:1px!important}
+  .center-asset-pre-shell .asset-card-list.asset-dense .asset-card-name{font-size:var(--asset-font-mobile,5.5px)!important}
+  .center-asset-pre-shell .asset-card-list.asset-dense .asset-card-control button{
+    width:13px!important;height:13px!important;font-size:8px!important;border-radius:2px!important;
+  }
+  .center-asset-pre-shell .asset-card-list.asset-dense .asset-card-sell button{
+    min-width:23px!important;height:13px!important;font-size:5px!important;border-radius:2px!important;
+  }
+
+  /* POST asset manager in right panel. */
+  #playersHistory.asset-mode{
+    grid-template-rows:minmax(0,1fr)!important;
+    grid-template-columns:1fr!important;
+  }
+  #playersHistory.asset-mode .history-card.asset-active{
+    grid-column:1!important;grid-row:1!important;padding:5px!important;
+  }
+  #playersHistory.asset-mode .history-card.asset-other{display:none!important}
+  #playersHistory.asset-mode .history-card.asset-active .history-head{
+    grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;
+  }
+  #playersHistory.asset-mode .history-card.asset-active .history-name{font-size:13px!important}
+  #playersHistory.asset-mode .history-card.asset-active .history-money{font-size:20px!important}
+
+  /* Setup screen usable in phone landscape. */
+  .overlay{padding:5px!important}
+  .setup{
+    width:min(720px,98vw)!important;height:96dvh!important;max-height:96dvh!important;
+    padding:10px!important;border-radius:12px!important;
+  }
+  .setup h2{font-size:18px!important}.setup p{font-size:10px!important;margin-bottom:6px!important}
+  .setup-top{margin-bottom:4px!important;font-size:10px!important}
+  .setup input,.setup select{padding:4px!important;font-size:12px!important}
+  .player-row{
+    grid-template-columns:28px minmax(120px,1fr) 1.6fr!important;
+    gap:5px!important;padding:4px!important;margin:3px 0!important;border-radius:7px!important;
+  }
+  .num-badge{width:24px!important;height:24px!important;border-radius:6px!important;font-size:10px!important}
+  .color-select{grid-column:auto!important;gap:4px!important;flex-wrap:nowrap!important}
+  .swatch{width:20px!important;height:20px!important;border-width:2px!important}
+  .setup-actions{
+    margin:5px -10px -10px!important;padding:5px 10px 7px!important;
+  }
+  .setup-actions button{min-height:36px!important;font-size:13px!important;width:260px!important}
+
+  /* Debt modal compact enough to remain usable on phone. */
+  .mini-modal{padding:4px!important}
+  .debt-box,.mini-box{max-height:96dvh!important;overflow:auto!important;padding:8px!important;border-radius:10px!important}
+  .debt-box h2,.mini-box h3{font-size:16px!important;margin:0 0 4px!important}
+  .debt-summary{gap:4px!important;margin:4px 0!important}
+  .debt-stat{padding:4px!important;font-size:7px!important}.debt-stat b{font-size:12px!important}
+  .debt-table{font-size:7px!important}.debt-table th,.debt-table td{padding:3px!important}
+  .debt-actions button{min-height:30px!important;font-size:9px!important;padding:3px 6px!important}
+}
+
+
+/* ===== MOBILE PORTRAIT EDITION ===== */
+@media (orientation:portrait) and (max-width:700px){
+  html,body{width:100%;min-height:100%;height:auto;overflow-x:hidden;overflow-y:auto;background:#06101c}
+  body{margin:0;padding:0}
+  #app{
+    width:100%!important;height:auto!important;min-height:100vh!important;max-width:none!important;
+    display:block!important;margin:0!important;padding:0!important;overflow:visible!important;
+  }
+  .board-stage{
+    width:100vw!important;height:100vw!important;max-width:none!important;min-width:0!important;
+    margin:0!important;padding:2px!important;overflow:visible!important;
+  }
+  #board{
+    --ring-w:18px!important;width:100%!important;height:100%!important;
+    gap:1px!important;border-width:2px!important;border-radius:7px!important;
+  }
+  #center{
+    margin:18px!important;padding:5px!important;gap:4px!important;
+    border-width:2px!important;border-radius:10px!important;overflow:hidden!important;
+    grid-template-rows:auto auto minmax(0,1fr) auto!important;
+  }
+  .model-wrap{display:none!important}
+  .cell{border-width:1px!important;border-radius:3px!important}
+  .cell-inner{border-radius:2px!important}
+  .cell:not(.chance):not(.chest):not(.corner) .cell-name{
+    top:2px!important;left:2px!important;right:2px!important;height:62%!important;
+    display:flex!important;align-items:flex-start!important;justify-content:center!important;
+    white-space:normal!important;overflow:hidden!important;text-overflow:clip!important;
+    padding:0 1px!important;line-height:.90!important;letter-spacing:-.02em!important;
+    font-size:8px!important;font-weight:1000!important;
+  }
+  .cell.airport .cell-name,.cell.chance .cell-name,.cell.chest .cell-name,.cell.corner .cell-name{
+    inset:2px!important;height:calc(100% - 4px)!important;display:flex!important;
+    align-items:center!important;justify-content:center!important;white-space:normal!important;
+    line-height:.92!important;padding:1px!important;font-size:9px!important;
+  }
+  .cell-price{left:1px!important;right:1px!important;bottom:1px!important;font-size:7px!important;line-height:1!important}
+  .cell-price.rent{font-size:7.5px!important}
+  .level-in{top:58%!important;left:1px!important;right:1px!important;min-height:9px!important}
+  .level-in .house-stars{font-size:7.5px!important;gap:0!important}
+  .level-in.hotel{height:16px!important}.level-in.hotel .star-row{font-size:7px!important;height:7px!important;line-height:7px!important}
+  .level-in.mort{font-size:6px!important}.mortgage-x{height:2px!important}
+
+  .ring-pawn{width:16px!important;height:20px!important;margin-left:-3px!important}.ring-figure{width:17px!important;height:21px!important}
+  .ring-head{left:5px!important;top:0!important;width:7px!important;height:7px!important;border-width:1px!important}
+  .ring-body{left:2px!important;top:6px!important;width:13px!important;height:13px!important;border-width:1px!important}
+  .ring-name{display:none!important}.ring-pawn.active::after{width:22px!important;height:22px!important;box-shadow:0 0 9px 4px #fff59d6e!important}
+
+  .brand{gap:4px!important;align-items:flex-start!important;min-width:0}.brand>div:first-child{min-width:0}
+  .brand h1{margin:0!important;max-width:180px!important;font-size:17px!important;line-height:.95!important;letter-spacing:0!important;white-space:normal!important;overflow-wrap:anywhere!important}
+  .brand small{font-size:7px!important;line-height:1!important}.turn-pill{max-width:100px!important;padding:3px 5px!important;border-radius:6px!important;font-size:8px!important;line-height:1.05!important;white-space:normal!important;text-align:center!important}
+  .dice-area{min-height:64px!important;height:64px!important;gap:12px!important}.die{width:56px!important;height:56px!important;border-radius:10px!important;border-width:2px!important;font-size:39px!important;line-height:1!important}
+  .message{min-height:0!important;height:100%!important;padding:5px!important;border-radius:7px!important;font-size:11px!important;line-height:1.18!important;overflow:hidden!important}.message strong{font-size:1.08em!important}
+  .arrival-banner{min-height:0!important;height:100%!important;padding:3px!important;font-size:26px!important;line-height:1!important;overflow:hidden!important}
+  .actions{min-height:38px!important;gap:5px!important;padding:0!important;align-items:end!important}.actions button,.control-btn,.confirm-btn{min-width:0!important;width:100%!important;min-height:36px!important;height:36px!important;padding:3px 5px!important;border-radius:5px!important;font-size:10px!important;line-height:1!important}
+
+  /* Player area moved below the board. */
+  .side{
+    position:relative!important;top:auto!important;width:100%!important;height:auto!important;max-height:none!important;
+    margin:0!important;padding:8px 8px 18px!important;display:block!important;overflow:visible!important;
+    border-left:0!important;border-top:2px solid #28435b!important;background:linear-gradient(180deg,#0b1726,#07111f)!important;
+  }
+  .side-title{font-size:14px!important;margin:0 0 7px!important;padding:0 2px!important;line-height:1.1}
+  #playersHistory{
+    width:100%!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    grid-template-rows:none!important;gap:8px!important;overflow:visible!important;
+  }
+  #playersHistory[data-count="2"]{grid-template-columns:1fr!important}
+  #playersHistory[data-count="3"],#playersHistory[data-count="4"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #playersHistory[data-count="5"],#playersHistory[data-count="6"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .history-card{min-width:0!important;min-height:190px!important;height:auto!important;border-radius:10px!important;padding:7px!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important}
+  .history-head{width:100%!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;align-items:center!important;gap:3px 6px!important;margin:0 0 6px!important;text-align:left!important}
+  .history-name{grid-column:1!important;grid-row:1!important;width:auto!important;text-align:left!important;font-size:14px!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .history-money{grid-column:2!important;grid-row:1!important;width:auto!important;min-width:76px!important;padding:4px 7px!important;border-width:1px!important;border-radius:7px!important;text-align:center!important;font-size:22px!important;line-height:1!important}
+  .player-held{grid-column:1/-1!important;grid-row:2!important;min-height:0!important;margin:0!important}.held-badge{font-size:7px!important;padding:1px 3px!important}
+  .history-table-wrap{min-height:0!important;overflow:hidden!important;border-radius:6px!important}.history-table{width:100%!important;font-size:10px!important;line-height:1.1!important}.history-table th,.history-table td{padding:4px 5px!important;line-height:1.1!important}.history-table th:last-child,.history-table td:last-child{width:58px!important}.tx{min-width:46px!important;padding:1px 3px!important;font-size:9.5px!important}
+  #playersHistory[data-count="2"] .history-table{font-size:11px!important}#playersHistory[data-count="3"] .history-table,#playersHistory[data-count="4"] .history-table{font-size:10px!important}#playersHistory[data-count="5"] .history-table,#playersHistory[data-count="6"] .history-table{font-size:9px!important}
+  #playersHistory[data-count] .history-name{font-size:14px!important}#playersHistory[data-count] .history-money{font-size:22px!important}
+  .syslog{margin-top:8px!important;padding:5px 7px!important}.syslog summary{font-size:10px!important}.syslog-body{max-height:120px!important;font-size:9px!important}
+
+  /* Asset manager at end of turn stays below board, using full width. */
+  #playersHistory.asset-mode{grid-template-columns:1fr!important;grid-template-rows:none!important;gap:8px!important}
+  #playersHistory.asset-mode .history-card.asset-active{grid-column:1!important;grid-row:auto!important;min-height:300px!important;padding:8px!important}
+  #playersHistory.asset-mode .history-card.asset-other{display:none!important}
+  #playersHistory.asset-mode .history-card.asset-active .history-name{font-size:15px!important}#playersHistory.asset-mode .history-card.asset-active .history-money{font-size:22px!important}
+
+  /* Setup should work vertically too. */
+  .overlay{padding:8px!important;overflow-y:auto!important}.setup{width:min(96vw,560px)!important;max-height:none!important;height:auto!important;padding:12px!important;border-radius:12px!important}.setup h2{font-size:20px!important}.setup p{font-size:11px!important}.player-row{grid-template-columns:30px minmax(0,1fr)!important;gap:6px!important;padding:6px!important}.color-select{grid-column:1/-1!important;flex-wrap:wrap!important}.swatch{width:26px!important;height:26px!important}.setup-actions{position:sticky!important;bottom:0!important;margin:8px -12px -12px!important;padding:8px 12px!important}.setup-actions button{width:100%!important;min-height:44px!important;font-size:15px!important}
+}
+
+
+/* ===== V0.25P1.1: SWAP TURN LABEL AND GAME TITLE ===== */
+@media (orientation:portrait) and (max-width:700px){
+  .brand{
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    gap:5px!important;
+    align-items:center!important;
+  }
+  .brand #turnPill{
+    grid-column:1!important;
+    max-width:none!important;
+    min-width:0!important;
+    padding:0!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    text-align:left!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    font-size:17px!important;
+    line-height:1!important;
+    font-weight:1000!important;
+    color:#111827!important;
+  }
+  .brand .game-mark{
+    grid-column:2!important;
+    min-width:0!important;
+    width:76px!important;
+    text-align:right!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:flex-end!important;
+    justify-content:center!important;
+  }
+  .brand .game-mark h1{
+    width:76px!important;
+    max-width:76px!important;
+    margin:0!important;
+    padding:0!important;
+    font-size:7.5px!important;
+    line-height:.95!important;
+    letter-spacing:0!important;
+    text-align:right!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    overflow-wrap:normal!important;
+  }
+  .brand .game-mark small{
+    margin-top:2px!important;
+    font-size:4.8px!important;
+    line-height:1!important;
+    text-align:right!important;
+    white-space:nowrap!important;
+  }
+}
+
+/* ===== V0.28: CLOCKWISE TWO-ROW PLAYER ORBIT + GLOBAL TRANSACTION HISTORY ===== */
+html,body{width:100%!important;height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}
+body{padding:0!important}
+#app{
+  width:100%!important;max-width:700px!important;height:auto!important;min-height:100vh!important;
+  margin:0 auto!important;padding:0!important;display:block!important;overflow:visible!important;
+}
+.board-stage{
+  width:100%!important;height:auto!important;min-width:0!important;max-width:none!important;
+  aspect-ratio:1/1!important;margin:0!important;padding:2px!important;overflow:visible!important;
+}
+#board{width:100%!important;height:100%!important}
+
+.player-dock{
+  position:relative;width:100%;margin:0;padding:0 4px 10px;
+  background:linear-gradient(180deg,#06101c,#0a1928);border-top:2px solid #294056;
+}
+.player-strip{
+  position:relative;width:100%;height:clamp(130px,35vw,160px);
+  padding:0;overflow:visible;
+}
+.player-tile{
+  --player-color:#3b82f6;position:absolute;left:0;top:0;z-index:1;min-width:0;
+  padding:5px 4px;border:2px solid #ffffff75;border-radius:8px;background:var(--player-color);color:#fff;
+  display:grid;grid-template-rows:repeat(3,minmax(0,1fr));align-items:center;gap:2px;overflow:hidden;
+  box-shadow:0 4px 10px #0005;transform:translate3d(0,0,0);
+  transition:transform .52s cubic-bezier(.2,.82,.2,1),width .52s cubic-bezier(.2,.82,.2,1),height .52s cubic-bezier(.2,.82,.2,1),border-radius .38s ease,box-shadow .38s ease,filter .38s ease,padding .38s ease;
+  will-change:transform,width,height;
+}
+.player-tile:not(.active){filter:saturate(.86) brightness(.9)}
+.player-tile.active{
+  z-index:6;padding:8px 6px;border:3px solid #fff;border-radius:13px;
+  grid-template-rows:repeat(3,minmax(0,1fr));
+  box-shadow:0 0 0 3px #ffffff28,8px 10px 24px #0009;filter:none;
+}
+.player-tile.active.has-pre-controls{grid-template-rows:minmax(0,1fr) minmax(0,1.05fr) minmax(0,.85fr) auto}
+.player-info-row{min-width:0;width:100%;display:flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap;font-weight:1000;line-height:1;text-shadow:0 2px 3px #000a}
+.player-name-line{overflow:hidden;font-size:clamp(9px,2.35vw,14px);letter-spacing:-.15px}
+.player-money-line{font-size:clamp(12px,3.05vw,19px)}
+.player-money-value{padding:2px 5px;border-radius:5px;background:#06101cce}
+.player-assets-line{gap:4px;font-size:clamp(7px,1.95vw,11px)}
+.asset-count-chip{padding:2px 3px;border-radius:4px;background:#06101c91}
+.player-tile.active .player-name-line{font-size:clamp(14px,3.8vw,21px)}
+.player-tile.active .player-money-line{font-size:clamp(17px,4.7vw,27px)}
+.player-tile.active .player-assets-line{font-size:clamp(9px,2.45vw,14px)}
+.pre-turn-mini-controls{display:grid;grid-template-columns:1fr;gap:3px;margin-top:2px}
+.pre-turn-mini-controls button{width:100%;min-width:0;min-height:21px;height:21px;padding:1px 3px;border-radius:5px;font-size:clamp(6px,1.65vw,9px);line-height:1;font-weight:1000;white-space:normal}
+.player-action-panel{display:none;width:100%;margin:0 0 10px;padding:8px;border:3px solid var(--active-color,#3b82f6);border-radius:12px;background:var(--active-color,#3b82f6);box-shadow:0 10px 24px #0007}
+.player-action-panel.open{display:grid;grid-template-rows:auto auto auto auto;gap:5px;animation:drawerOpen .28s ease-out}
+@keyframes drawerOpen{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+.player-action-panel .asset-card-list{height:auto!important;overflow:visible!important;grid-template-rows:repeat(var(--asset-count,1),auto)!important}
+.player-action-panel .asset-card-list.asset-dense{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(var(--asset-rows,1),auto)!important;grid-auto-flow:column}
+.player-action-panel .asset-card-list.asset-dense .asset-card-value,.player-action-panel .asset-card-list.asset-dense .asset-card-name small{display:none}
+.player-action-panel .asset-card-list.asset-dense .asset-card-control,.player-action-panel .asset-card-list.asset-dense .asset-card-sell{grid-template-columns:auto}
+
+.game-history-panel{width:calc(100% - 8px);margin:0 4px 18px;padding:10px;border:2px solid #294056;border-radius:14px;background:#0b1726;box-shadow:0 12px 30px #0006}
+.game-history-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;color:#dbeafe;font-size:clamp(15px,4vw,22px);font-weight:1000}
+.game-history-title small{font-size:10px;color:#91a6bb}
+.game-history-list{display:grid;gap:4px}
+.global-tx-row{
+  --row-color:#334155;position:relative;min-height:40px;display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:7px;
+  padding:6px 8px;border-radius:8px;background:var(--row-color);color:var(--row-text,#fff);
+  border:1px solid #ffffff4d;box-shadow:inset 0 0 0 1px #0002;
+}
+.global-tx-content{min-width:0;font-size:clamp(10px,2.7vw,14px);font-weight:850;line-height:1.15}
+.global-tx-content b{font-weight:1000}
+.global-tx-amount{white-space:nowrap;padding:3px 6px;border-radius:6px;background:#06101cd9;color:#fff;font-size:clamp(11px,3vw,16px);font-weight:1000}
+.global-tx-participants{display:flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0}
+.participant-square{width:14px;height:14px;flex:0 0 14px;border-radius:3px;border:2px solid #fff;box-shadow:0 1px 3px #0007}
+.game-history-empty{padding:22px 8px;text-align:center;color:#91a6bb;font-weight:850}
+
+#center.center-asset-v27-mode{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important;
+  padding:4px!important;overflow:hidden!important;background:#f8fafc!important;
+}
+#center.center-asset-v27-mode .brand,#center.center-asset-v27-mode .dice-area,#center.center-asset-v27-mode #confirmZone,#center.center-asset-v27-mode #actions{display:none!important}
+#center.center-asset-v27-mode #message{display:block!important;grid-row:1!important;width:100%!important;height:100%!important;min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;border:0!important;background:#f8fafc!important}
+.center-asset-v27-shell{width:100%;height:100%;min-height:0;display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;gap:3px;padding:5px;border:3px solid var(--active-color,#3b82f6);border-radius:9px;background:#fff}
+.center-asset-v27-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;align-items:center;color:#111827;font-weight:1000}
+.center-asset-v27-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.center-asset-v27-cash{padding:3px 5px;border-radius:5px;background:#07111f;color:#fff;font-size:15px}
+.center-asset-v27-shell .asset-card-phase{font-size:7px!important;padding:2px 4px!important;margin:0!important}
+.center-asset-v27-shell .asset-card-money{gap:3px!important;margin-bottom:1px!important}
+.center-asset-v27-shell .asset-card-stat{padding:2px!important}.center-asset-v27-shell .asset-card-stat span{font-size:6px!important}.center-asset-v27-shell .asset-card-stat b{font-size:10px!important}
+.center-asset-v27-shell .asset-card-list{min-height:0!important;height:100%!important;gap:1px!important;padding:2px!important}
+.center-asset-v27-shell .asset-card-row{gap:1px!important;padding:1px 2px!important}.center-asset-v27-shell .asset-card-name{font-size:var(--asset-font-mobile,6px)!important}.center-asset-v27-shell .asset-card-name small{display:none}
+.center-asset-v27-shell .asset-card-control{grid-template-columns:14px minmax(22px,auto)!important;gap:1px!important}.center-asset-v27-shell .asset-card-control button{width:14px!important;height:14px!important;font-size:8px!important}.center-asset-v27-shell .asset-card-sell{grid-template-columns:auto minmax(21px,auto)!important;gap:1px!important}.center-asset-v27-shell .asset-card-sell button{min-width:24px!important;height:14px!important;font-size:5px!important;padding:0 2px!important}.center-asset-v27-shell .asset-card-value{font-size:5px!important}
+.center-asset-v27-shell .asset-card-list.asset-dense{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(var(--asset-rows,1),minmax(0,1fr));grid-auto-flow:column}.center-asset-v27-shell .asset-card-list.asset-dense .asset-card-value{display:none}.center-asset-v27-shell .asset-card-list.asset-dense .asset-card-control,.center-asset-v27-shell .asset-card-list.asset-dense .asset-card-sell{grid-template-columns:auto!important}
+.center-asset-v27-shell .asset-card-commit{min-height:28px!important;height:28px!important;margin:1px 0 0!important;font-size:9px!important}
+
+@media (max-width:430px){
+  .player-strip{height:clamp(126px,35vw,150px)}
+  .player-tile{padding:4px 2px;gap:1px}.player-tile.active{padding:6px 4px}
+  .player-assets-line{gap:2px}.asset-count-chip{padding:1px 2px}
+  .pre-turn-mini-controls{gap:2px}.pre-turn-mini-controls button{height:20px;min-height:20px}
+}
+
+/* ===== V0.29: SOCKET.IO ONLINE ROOM CONTROLS ===== */
+.online-bar{
+  position:fixed;z-index:3200;top:max(5px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+  width:min(690px,calc(100% - 10px));min-height:38px;padding:4px 6px;border:1px solid #ffffff45;border-radius:11px;
+  background:#07111fee;color:#fff;box-shadow:0 8px 22px #0008;backdrop-filter:blur(8px);
+  display:flex;align-items:center;gap:5px;font-size:10px;font-weight:900;
+}
+.online-status{display:flex;align-items:center;gap:4px;min-width:0;margin-right:auto}
+.online-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px currentColor}
+.online-dot.connected{background:#22c55e}.online-dot.room{background:#38bdf8}
+.online-room-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.online-bar button{min-height:28px;padding:3px 7px;border:1px solid #ffffff55;border-radius:7px;color:#fff;background:#1e3a5f;font-size:9px;font-weight:1000}
+.online-bar button.online-create{background:#15803d}.online-bar button.online-leave{background:#991b1b}
+.online-modal{z-index:4000}.online-box{width:min(460px,95vw);max-height:88vh;overflow:auto;padding:18px;border-radius:18px;background:#f8fafc;color:#0f172a;box-shadow:0 24px 70px #000b}
+.online-box h2{margin:0 0 5px}.online-box p{margin:0 0 12px;color:#475569;font-size:12px;line-height:1.4}
+.online-field{display:grid;gap:4px;margin:10px 0}.online-field label{font-size:11px;font-weight:1000}.online-field small{color:#64748b;font-size:10px;line-height:1.35}.online-field input,.online-field select{width:100%;min-height:42px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#0f172a;font-weight:850;text-transform:none}
+.online-field input.room-code{text-transform:uppercase;letter-spacing:.18em;font-size:18px;text-align:center}
+.online-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.online-actions button{min-height:44px;border:0;border-radius:9px;font-weight:1000}.online-primary{background:#15803d;color:#fff}.online-blue{background:#0369a1;color:#fff}.online-muted{background:#cbd5e1;color:#0f172a}
+.online-note{min-height:20px;margin-top:8px;padding:7px;border-radius:8px;background:#e2e8f0;color:#334155;font-size:11px;font-weight:800}.online-note.error{background:#fee2e2;color:#991b1b}.online-note.ok{background:#dcfce7;color:#166534}
+.online-seat-list{display:grid;gap:5px;margin:8px 0}.online-seat{display:flex;align-items:center;gap:7px;padding:7px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}.online-seat-color{width:14px;height:14px;border-radius:4px;border:1px solid #0003}.online-seat small{margin-left:auto;color:#64748b}
+body.online-active{padding-top:47px!important}.online-turn-locked #preManageAssets,.online-turn-locked #preRollDice,.online-turn-locked #actions button,.online-turn-locked #confirmZone button{filter:grayscale(.75);opacity:.48}
+@media(max-width:430px){
+  .online-bar{top:max(3px,env(safe-area-inset-top));min-height:34px;padding:3px 4px}.online-bar button{padding:2px 5px;font-size:8px}.online-status{font-size:8px}
+  body.online-active{padding-top:41px!important}.online-box{padding:13px}.online-actions{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="onlineBar" class="online-bar"><div class="online-status"><span id="onlineDot" class="online-dot"></span><span id="onlineRoomLabel" class="online-room-label">Đang kết nối máy chủ…</span></div><button id="onlineCreateBtn" class="online-create" type="button">＋ TẠO PHÒNG</button><button id="onlineJoinBtn" type="button">⌨ VÀO PHÒNG</button><button id="onlineCopyBtn" class="hidden" type="button">⧉ MÃ</button><button id="onlineLeaveBtn" class="online-leave hidden" type="button">RỜI</button></div>
+<div id="onlineModal" class="overlay online-modal hidden"><div class="online-box"><h2>🌐 Chơi online</h2><p>Chủ phòng bắt đầu một ván trên máy mình rồi tạo phòng. Người khác nhập mã phòng và chọn đúng tên của mình.</p><div id="onlineServerField" class="online-field"><label>Máy chủ online (thường để trống)</label><input id="onlineServerInput" autocomplete="url" inputmode="url" placeholder="Ví dụ: https://co-ty-phu-2.onrender.com"><small>Để trống khi game đang mở trực tiếp trên Render. Không nhập mã phòng vào ô này.</small></div><div id="onlineRoomField" class="online-field"><label>Mã phòng gồm 6 ký tự</label><input id="onlineRoomInput" class="room-code" maxlength="6" autocomplete="off" placeholder="ABC123"></div><div id="onlineSeatWrap" class="hidden"><div class="online-field"><label>Chọn người chơi của bạn</label><select id="onlineSeatSelect"></select></div><div id="onlineSeatList" class="online-seat-list"></div></div><div id="onlineNote" class="online-note">Chưa vào phòng.</div><div class="online-actions"><button id="onlineInspectBtn" class="online-blue" type="button">KIỂM TRA PHÒNG</button><button id="onlineJoinConfirmBtn" class="online-primary" type="button">VÀO PHÒNG</button><button id="onlineCreateConfirmBtn" class="online-primary" type="button">TẠO PHÒNG TỪ VÁN NÀY</button><button id="onlineCloseBtn" class="online-muted" type="button">ĐÓNG</button></div></div></div>
+<div id="setupOverlay" class="overlay"><div class="setup"><h2>🎲 Cờ Tỉ Phú Việt Nam 2D</h2><p>V0.29.1 Socket.IO Online • Chơi tại chỗ hoặc tạo phòng cho bạn bè.</p><div class="setup-top"><label><b>Số người chơi</b><br><select id="playerCount" onchange="renderSetupRows()"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label></div><div id="setupRows"></div><div style="height:6px"></div><div class="setup-actions"><button id="startGameBtn" class="btn-main" type="button">▶ BẮT ĐẦU CHƠI</button></div></div></div>
+<div id="wheelModal" class="mini-modal hidden" style="display:none!important"><div class="wheel-box"><h2 id="wheelTitle">VÒNG QUAY</h2><div class="wheel-stage"><div class="pointer"></div><div id="wheel" class="wheel"></div><div id="wheelLabels"></div></div><div id="wheelResult" class="wheel-result">Nhấn quay để bắt đầu.</div><button id="wheelOk" class="btn-main wheel-ok hidden">OK</button></div></div>
+<div id="debtModal" class="mini-modal hidden"><div class="debt-box"><h2>💳 Thanh lý tài sản</h2><div id="debtReason" class="debt-note"></div><div class="debt-summary"><div class="debt-stat">Tiền đang có<b id="debtCash">0Đ</b></div><div class="debt-stat">Cần trả<b id="debtNeed">0Đ</b></div><div class="debt-stat">Còn thiếu<b id="debtLack">0Đ</b></div></div><table class="debt-table"><thead><tr><th>Tài sản</th><th>Trạng thái nháp</th><th>Tiền nhận khi giảm</th><th>Điều chỉnh</th></tr></thead><tbody id="debtRows"></tbody></table><p id="debtHint" class="debt-note"></p><div class="debt-actions"><button id="debtCancel" class="btn-ghost hidden">↩ QUAY LẠI</button><button id="debtBankrupt" class="btn-bad hidden">Xác nhận phá sản</button><button id="debtAccept" class="btn-bad" disabled>Chấp nhận</button></div></div></div>
+<div id="app"><main class="board-stage"><div id="board"><section id="center"><div class="brand"><div id="turnPill" class="turn-pill">Chưa bắt đầu</div><div class="game-mark"><h1>CỜ TỈ PHÚ VIỆT NAM</h1><small>Socket.IO Online • V0.29.1</small></div></div><div class="dice-area"><div id="die1" class="die">–</div><div id="die2" class="die">–</div></div><div id="confirmZone"></div><div id="message" class="message">Thiết lập người chơi để bắt đầu.</div><div id="actions" class="actions"></div></section></div></main><section id="playerDock" class="player-dock"><div id="playerStrip" class="player-strip"></div><div id="playerActionPanel" class="player-action-panel"></div></section><section id="gameHistoryPanel" class="game-history-panel"><div class="game-history-title"><span>📜 20 GIAO DỊCH GẦN NHẤT</span><small>Chỉ ghi người đang chơi</small></div><div id="gameHistoryList" class="game-history-list"><div class="game-history-empty">Chưa có giao dịch.</div></div></section></div>
+<script src="https://cdn.socket.io/4.8.3/socket.io.min.js" integrity="sha384-kzavj5fiMwLKzzD1f8S7TeoVIEi7uKHvbTA3ueZkrzYq75pNQUiUi6Dy98Q3fxb0" crossorigin="anonymous"></script>
+<script>
+const COLORS=[{name:'Đỏ',hex:'#ef4444'},{name:'Vàng',hex:'#f59e0b'},{name:'Xanh dương',hex:'#3b82f6'},{name:'Xanh lá',hex:'#22c55e'},{name:'Tím',hex:'#8b5cf6'},{name:'Hồng',hex:'#ec4899'}];
+const tileNames=['Bắt Đầu (GO)','Phố Cổ','Khí Vận','Chợ Đồng Xuân','Thuế Lương Bổng','Ga Hà Nội','Bưu Điện Hà Nội','Cơ Hội','Nhà Hát Lớn','Tháp Rùa','Metro Suối Tiên','Quảng Trường Ba Đình','Nhà Máy Điện','Hoàng Thành','Văn Miếu','Ga Vinh','Vịnh Hạ Long','Khí Vận','Sơn Đoòng','Tràng An','Bãi Đỗ Xe','Cầu Rồng Đà Nẵng','Cơ Hội','Cung Đình Huế','Hội An','Ga Đà Nẵng','Dinh Độc Lập','Nhà Thờ Đức Bà','Nhà Máy Nước','Bến Nhà Rồng','Vào Tù','Chợ Bến Thành','Landmark81','Khí Vận','Bitexco','Ga Sài Gòn','Cơ Hội','Tháp Chăm','Thuế Lợi Tức','Phú Quốc'];
+const icons=['🏁','🏘️','❓','🏘️','💸','🚉','📮','🎁','🎭','🐢','🚇','🏛️','⚡','🏯','🏛️','🚉','🌊','❓','⛰️','🏞️','🅿️','🌉','🎁','🏯','🏮','🚉','🏛️','⛪','🚰','🏛️','👮','🛍️','🏙️','❓','🏢','🚉','🎁','🗼','💸','🏝️'];
+const landData={
+1:{buy:60,r:[2,10,30,90,250],build:50,mort:30},3:{buy:60,r:[2,10,30,90,250],build:50,mort:30},6:{buy:100,r:[6,30,90,270,550],build:50,mort:50},8:{buy:100,r:[6,30,90,270,550],build:50,mort:50},9:{buy:120,r:[8,40,100,300,600],build:50,mort:60},11:{buy:140,r:[10,50,150,450,750],build:100,mort:70},13:{buy:140,r:[10,50,150,450,750],build:100,mort:70},14:{buy:160,r:[12,60,180,500,900],build:100,mort:80},16:{buy:180,r:[14,70,200,550,950],build:100,mort:90},18:{buy:180,r:[14,70,200,550,950],build:100,mort:90},19:{buy:200,r:[16,80,220,600,1000],build:100,mort:100},21:{buy:220,r:[18,90,250,700,1050],build:150,mort:110},23:{buy:220,r:[18,90,250,700,1050],build:150,mort:110},24:{buy:240,r:[20,100,300,750,1100],build:150,mort:120},26:{buy:260,r:[22,110,330,800,1150],build:150,mort:130},27:{buy:260,r:[22,110,330,800,1150],build:150,mort:130},29:{buy:280,r:[24,120,360,850,1200],build:150,mort:140},31:{buy:300,r:[26,130,390,900,1275],build:200,mort:150},32:{buy:300,r:[26,130,390,900,1275],build:200,mort:150},34:{buy:320,r:[28,150,450,1000,1400],build:200,mort:160},37:{buy:350,r:[35,175,500,1100,1500],build:200,mort:175},39:{buy:400,r:[50,200,600,1400,2000],build:200,mort:200}};
+[5,15,25,35].forEach(i=>landData[i]={type:'airport',buy:200,mort:100});[12,28].forEach(i=>landData[i]={type:'utility',buy:150,mort:75});
+Object.keys(landData).forEach(k=>{const d=landData[k];d.redeem=Math.floor(d.buy*.55);d.sellActive=Math.floor(d.buy*.55);d.sellMort=Math.floor(d.buy*.05)});
+let players=[],properties={},currentTurn=0,d1=0,d2=0,extraTurn=false,doublesCount=0,busy=false,gameOver=false,pendingMetro=false,chanceDeck=[],chestDeck=[],clickLocked=false,pendingWheel=null,debtState=null,assetState=null,turnGate=null,lastButtonSide='right',gameHistory=[],txSequence=0,playerOrbitCache={};
+let onlineSocket=null,onlineRoomCode='',onlinePlayerId=null,onlineVersion=0,onlineMembers=[],onlineApplyingState=false,onlineSyncTimer=null,onlineSyncInFlight=false,onlineSyncQueued=false;
+let onlineClientToken='';
+try{onlineClientToken=localStorage.getItem('tiPhuClientToken')||crypto.randomUUID();localStorage.setItem('tiPhuClientToken',onlineClientToken)}catch(_){onlineClientToken=`guest-${Date.now()}-${Math.random().toString(36).slice(2)}`}
+const baseChance=[
+{t:'🚉 Đi đến Ga Hà Nội đây',run:p=>moveTo(p,5,true,true)},{t:'🏝️ Đi đến Phú Quốc đây',run:p=>moveTo(p,39,true,true)},{t:'🏘️ Tiến đến ô đất gần nhất đây',run:p=>cardNearestLand(p)},{t:'🏮 Đi đến Hội An đây',run:p=>moveTo(p,24,true,true)},{t:'🎲 Tàu bay xúc xắc đây',run:p=>cardOddEvenMove(p)},{t:'⚡ Trả tiền điện đây',run:p=>repairFee(p,25,100,12,'Trả tiền điện')},{t:'🏁 Về điểm xuất phát đây (START!)',run:p=>{p.pos=0;credit(p,200,'Về START (Ngân hàng)');updateAll();finishAction()}},{t:'🎟️ Miễn thuế nhà đất đây (100% OFF)',run:p=>{p.rentFree=(p.rentFree||0)+1;log(`${p.name} giữ 1 thẻ miễn thuê.`);finishAction()}},{t:'🎰 Xổ số kiến thiết đây',run:p=>lottery(p)},{t:'🚉 Đến ga gần nhất đây',run:p=>cardNearestAirport(p)},{t:'🛠️ Hỏng đường ray nè',run:p=>runwayFee(p)},{t:'🏛️ Đi đến Quảng trường Ba Đình đây',run:p=>moveTo(p,11,true,true)},{t:'🎭 Diễn kịch giỏi nhỉ: +50Đ',run:p=>bankCard(p,50,'Diễn kịch giỏi')},{t:'🦘 Nhảy lò cò đây: lùi 3 ô',run:p=>moveBy(p,3,-1,false).then(()=>processTile(p,false))},{t:'👮 Vào tù là rõ',run:p=>sendToJail(p)},{t:'🚉 Đi đến Ga Đà Nẵng đây',run:p=>moveTo(p,25,true,true)},{t:'🅿️ Đi đến Bãi đậu xe đây',run:p=>moveTo(p,20,true,true)}];
+const baseChest=[
+{t:'🎂 Mừng sinh nhật: nhận 10Đ từ mỗi người',run:p=>birthday(p)},{t:'💸 Chuyển nhầm tài khoản: trả 100Đ',run:p=>bankCard(p,-100,'Chuyển nhầm tài khoản')},{t:'🧧 Thần tài ban lộc: +100Đ',run:p=>bankCard(p,100,'Thần tài ban lộc')},{t:'🎤 Hát hay múa giỏi: +30Đ',run:p=>bankCard(p,30,'Hát hay múa giỏi')},{t:'🏁 Về START!',run:p=>{p.pos=0;credit(p,200,'Về START (Ngân hàng)');updateAll();finishAction()}},{t:'🔄 Lật ngược tình thế',run:p=>flipFortune(p)},{t:'🏠 Thừa kế gia sản: +100Đ',run:p=>bankCard(p,100,'Thừa kế gia sản')},{t:'💰 Nhặt được của rơi: +200Đ',run:p=>bankCard(p,200,'Nhặt được của rơi')},{t:'🙈 Quá ngây thơ: -50Đ',run:p=>bankCard(p,-50,'Quá ngây thơ')},{t:'🤝 Ủng hộ người nghèo',run:p=>poorSupport(p)},{t:'🚰 Trả tiền nước',run:p=>repairFee(p,40,120,28,'Trả tiền nước')},{t:'🐕 Chó cắn áo rách: -20Đ',run:p=>bankCard(p,-20,'Chó cắn áo rách')},{t:'🔓 Thẻ ra tù miễn phí',run:p=>{p.jailFree=(p.jailFree||0)+1;log(`${p.name} giữ 1 thẻ ra tù miễn phí.`);finishAction()}},{t:'🕵️ Kẻ gian đột nhập: -30Đ',run:p=>bankCard(p,-30,'Kẻ gian đột nhập')},{t:'🗳️ Bầu tổng thống: trả 30Đ cho mỗi người',run:p=>presidentFee(p)},{t:'🎭 Kẻ khóc người cười',run:p=>{p.cryLaugh=(p.cryLaugh||0)+1;log(`${p.name} giữ thẻ Kẻ khóc người cười.`);finishAction()}},{t:'🌧️ Thiên tai lũ lụt: +50Đ',run:p=>bankCard(p,50,'Thiên tai lũ lụt')},{t:'👮 Vào tù là rõ',run:p=>sendToJail(p)}];
+function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}function resetDecks(){chanceDeck=shuffle(baseChance);chestDeck=shuffle(baseChest)}function sleep(ms){return new Promise(r=>setTimeout(r,ms))}function money(n){return `${Math.round(n)}Đ`}function current(){return players[currentTurn]}function ownedCount(id){return Object.values(properties).filter(x=>x.ownerId===id).length}
+function log(text){if(window.console&&console.debug)console.debug(String(text).replace(/<[^>]*>/g,''))}
+function addTx(p,reason,amount,participantIds=null){
+  if(!p||!players.length)return;
+  const active=current();
+  if(!active||p.id!==active.id)return;
+  const ids=[...new Set((participantIds||[p.id]).filter(id=>players.some(x=>x.id===id)))];
+  if(!ids.includes(p.id))ids.unshift(p.id);
+  gameHistory.unshift({id:++txSequence,playerId:p.id,reason:String(reason),amount:Number(amount)||0,participantIds:ids});
+  gameHistory=gameHistory.slice(0,20);
+  updateGlobalHistory();
+}
+function credit(p,amount,reason,participantIds=null){p.money+=amount;addTx(p,reason,+amount,participantIds);log(`${p.name}: +${money(amount)} (${reason}).`)}
+function debitDirect(p,amount,reason,participantIds=null){p.money-=amount;addTx(p,reason,-amount,participantIds);log(`${p.name}: -${money(amount)} (${reason}).`)}
+function transferDirect(from,to,amount,reason){const participants=[from.id,to.id];from.money-=amount;to.money+=amount;addTx(from,`${reason} (Cho ${to.name})`,-amount,participants);addTx(to,`${reason} (Từ ${from.name})`,+amount,participants);log(`${from.name} trả ${money(amount)} cho ${to.name} (${reason}).`)}
+function transferUpTo(from,to,limit,reason){const amount=Math.max(0,Math.min(limit,from.money));if(amount>0)transferDirect(from,to,amount,reason);return amount}
+function repairTotals(p,houseFee,hotelFee){let houses=0,hotels=0;Object.values(properties).filter(x=>x.ownerId===p.id&&!landData[x.pos]?.type).forEach(x=>{if(x.level===4)hotels++;else houses+=x.level});return{houses,hotels,total:houses*houseFee+hotels*hotelFee}}
+function returnHeldCard(type,index){const base=type==='chance'?baseChance:baseChest,deck=type==='chance'?chanceDeck:chestDeck,card=base[index];if(card&&!deck.includes(card))deck.push(card)}
+function heldCardExcluded(type,index){if(type==='chance'&&index===7)return players.some(p=>(p.rentFree||0)>0);if(type==='chest'&&index===12)return players.some(p=>(p.jailFree||0)>0);if(type==='chest'&&index===15)return players.some(p=>(p.cryLaugh||0)>0);return false}
+function refillDeck(type){const base=type==='chance'?baseChance:baseChest,deck=type==='chance'?chanceDeck:chestDeck;deck.push(...shuffle(base.filter((c,i)=>!heldCardExcluded(type,i))))}
+function cardBankDirection(type,card,drawer){const base=type==='chance'?baseChance:baseChest,idx=base.indexOf(card);if(type==='chance'){
+  if(idx===5)return repairTotals(drawer,25,100).total>0?'pay':null;
+  if([6,8,12].includes(idx))return 'gain';
+  if(idx===10){const c=Object.values(properties).filter(x=>x.ownerId===drawer.id&&landData[x.pos]?.type==='airport').length;return c>0?'pay':null}
+  return null;
+}
+if(type==='chest'){
+  if([1,8,11,13].includes(idx))return 'pay';
+  if([2,3,4,5,6,7,16].includes(idx))return 'gain';
+  if(idx===10)return repairTotals(drawer,40,120).total>0?'pay':null;
+}
+return null}
+function resolveCryLaughForDraw(drawer,type,card,proceed){const dir=cardBankDirection(type,card,drawer),holder=players.find(x=>x.id!==drawer.id&&(x.cryLaugh||0)>0);if(!dir||!holder)return proceed();holder.cryLaugh--;returnHeldCard('chest',15);updateAll();if(dir==='pay'){credit(holder,40,`Kẻ khóc người cười – ${drawer.name} phải nộp Ngân hàng`);log(`${holder.name} dùng Kẻ khóc người cười và nhận 40Đ.`);updateAll();return proceed()}return pay(holder,40,null,`Kẻ khóc người cười – ${drawer.name} được Ngân hàng thưởng`,()=>{log(`${holder.name} dùng Kẻ khóc người cười và trả 40Đ.`);proceed()})}
+function modelType(i){
+  if(i===0)return 'start';
+  if(i===10)return 'metro';
+  if(i===30)return 'jail';
+  if([2,17,33].includes(i))return 'chest';
+  if([7,22,36].includes(i))return 'chance';
+  if([4,38].includes(i))return 'tax';
+  if(i===20)return 'parking';
+  const d=landData[i];
+  if(d?.type==='airport')return 'station';
+  if(d?.type==='utility')return i===12?'power':'water';
+  if([11,18,19,21,26,27].includes(i))return 'temple';
+  if([1,3,6,8,9,13,14,16,23,24,29,31,32,34,37,39].includes(i))return 'nature';
+  return 'city';
+}
+function createModel3D(i){
+  const ic = esc(icons[i]||'');
+  const badge = `<div class="model-badge">${ic}</div>`;
+  switch(modelType(i)){
+    case 'start': return `<div class="base-iso"></div><div class="sign-plate icon" data-ic="🏁"></div>`;
+    case 'metro': return `<div class="base-iso"></div><div class="metro-body"></div><div class="metro-roof"></div><div class="metro-window"></div><div class="model-badge">🚇</div>`;
+    case 'jail': return `<div class="base-iso"></div><div class="bars"></div>${badge}`;
+    case 'chance': return `<div class="base-iso"></div><div class="sign-plate icon" data-ic="🎁"></div>`;
+    case 'chest': return `<div class="base-iso"></div><div class="sign-plate icon" data-ic="❓"></div>`;
+    case 'tax': return `<div class="base-iso"></div><div class="coin-stack"></div>${badge}`;
+    case 'parking': return `<div class="base-iso"></div><div class="sign-plate icon" data-ic="🅿️"></div>`;
+    case 'station': return `<div class="base-iso"></div><div class="temple-body" style="background:linear-gradient(180deg,#dbe7f3,#9eb5cc)"></div><div class="temple-roof" style="background:linear-gradient(180deg,#49657d,#263c51)"></div><div class="metro-body" style="bottom:18%;height:12%;left:24%;width:52%;background:linear-gradient(180deg,#f0f5fa,#7d9db8)"></div><div class="model-badge">🚉</div>`;
+    case 'power': return `<div class="base-iso"></div><div class="light-pole"></div><div class="bolt"></div>`;
+    case 'water': return `<div class="base-iso"></div><div class="water-tank"></div><div class="water-drop"></div>`;
+    case 'temple': return `<div class="base-iso"></div><div class="temple-body"></div><div class="temple-roof"></div><div class="tree t1"></div>${badge}`;
+    case 'nature': return `<div class="base-iso"></div><div class="mountain"></div><div class="tree t1"></div><div class="tree t2"></div>${badge}`;
+    default: return `<div class="base-iso"></div><div class="tower-front"></div><div class="tower-side"></div><div class="roof-front"></div><div class="roof-side"></div><div class="roof-top"></div><div class="tree t1"></div>${badge}`;
+  }
+}
+
+
+function isPhoneLandscape(){
+  return window.innerWidth<=700 || (window.innerWidth>window.innerHeight && window.innerHeight<=650);
+}
+function fitTileNames(){
+  const phone=isPhoneLandscape();
+  document.querySelectorAll('.cell .cell-name').forEach(el=>{
+    const cell=el.closest('.cell'); if(!cell)return;
+    const special=cell.classList.contains('corner')||cell.classList.contains('chance')||cell.classList.contains('chest')||cell.classList.contains('airport');
+    if(phone){
+      const airport=cell.classList.contains('airport');
+      const max=airport?7.5:(special?9:8),min=special?4.2:4.0;
+      let size=max;
+      el.style.setProperty('font-size',size+'px','important');
+      el.style.setProperty('letter-spacing',special?'0':'-.02em','important');
+      el.style.setProperty('white-space','normal','important');
+      el.style.setProperty('line-height','.90','important');
+      const maxH=Math.max(8,el.clientHeight-1);
+      const maxW=Math.max(8,el.clientWidth-1);
+      while(size>min && (el.scrollHeight>maxH || el.scrollWidth>maxW)){
+        size-=.25;
+        el.style.setProperty('font-size',size+'px','important');
+      }
+      return;
+    }
+    const max=special?Math.max(12,Math.min(31,cell.clientWidth*.30)):Math.max(9,Math.min(19,cell.clientWidth*.19));
+    let size=max;
+    el.style.fontSize=size+'px';
+    el.style.letterSpacing=special?'0':'-.025em';
+    if(special){
+      el.style.whiteSpace='normal';
+      while(size>10 && (el.scrollHeight>cell.clientHeight-8 || el.scrollWidth>cell.clientWidth-8)){
+        size-=.5;el.style.fontSize=size+'px';
+      }
+    }else{
+      el.style.whiteSpace='nowrap';
+      while(size>8 && el.scrollWidth>cell.clientWidth-6){
+        size-=.5;el.style.fontSize=size+'px';
+      }
+    }
+  });
+}
+function renderSetupRows(){const n=+document.getElementById('playerCount').value,box=document.getElementById('setupRows');box.innerHTML='';for(let i=0;i<n;i++){const row=document.createElement('div');row.className='player-row';row.innerHTML=`<div class="num-badge">${i+1}</div><input id="name-${i}" maxlength="14" value="Người ${i+1}"/><div class="color-select" id="colors-${i}"></div>`;box.appendChild(row)}for(let i=0;i<n;i++){COLORS.forEach((c,j)=>{let s=document.createElement('div');s.className='swatch'+(i===j?' selected':'');s.style.background=c.hex;s.title=c.name;s.dataset.color=j;s.onclick=()=>selectColor(i,j);document.getElementById(`colors-${i}`).appendChild(s)})}refreshSwatches()}
+function selectColor(row,color){document.querySelectorAll(`#colors-${row} .swatch`).forEach(x=>x.classList.remove('selected'));document.querySelector(`#colors-${row} .swatch[data-color="${color}"]`).classList.add('selected');refreshSwatches()}function refreshSwatches(){const rows=[...document.querySelectorAll('.color-select')],selected=rows.map(r=>r.querySelector('.selected')?.dataset.color);rows.forEach((r,ri)=>r.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('used',selected.some((v,j)=>j!==ri&&v===s.dataset.color))))}
+function startGame(){
+  const btn=document.getElementById('startGameBtn');
+  try{
+    if(btn){btn.disabled=true;btn.textContent='ĐANG KHỞI TẠO...'}
+    const n=+document.getElementById('playerCount').value,chosen=[],nextPlayers=[];
+    for(let i=0;i<n;i++){
+      const sw=document.querySelector(`#colors-${i} .selected`);
+      if(!sw)throw new Error(`Chưa chọn màu cho người ${i+1}.`);
+      const ci=+sw.dataset.color;
+      if(chosen.includes(ci))throw new Error('Mỗi người phải dùng một màu khác nhau.');
+      chosen.push(ci);
+      nextPlayers.push({id:i,name:document.getElementById(`name-${i}`).value.trim()||`Người ${i+1}`,color:COLORS[ci].hex,money:500,pos:0,inJail:false,jailTurns:0,rentFree:0,jailFree:0,cryLaugh:0});
+    }
+    players=nextPlayers;properties={};currentTurn=0;doublesCount=0;extraTurn=false;gameOver=false;turnGate=null;assetState=null;gameHistory=[];txSequence=0;playerOrbitCache={};resetDecks();
+    initBoard();updateAll();startTurn();
+    document.getElementById('setupOverlay').classList.add('hidden');
+    log(`<b>Trận đấu bắt đầu</b> với ${n} người chơi.`);
+  }catch(err){
+    console.error(err);alert('Không thể bắt đầu game: '+(err?.message||err));
+    if(btn){btn.disabled=false;btn.textContent='▶ BẮT ĐẦU CHƠI'}
+  }
+}
+function tileClass(i){if([0,10,20,30].includes(i))return'corner';if([7,22,36].includes(i))return'chance';if([2,17,33].includes(i))return'chest';if([4,38].includes(i))return'tax';if([5,15,25,35].includes(i))return'airport';if([12,28].includes(i))return'utility';return landData[i]?'':'special'}function edgeInfo(i){if(i<=10)return{row:11,col:11-i,edge:'edge-bottom'};if(i<=20)return{row:11-(i-10),col:1,edge:'edge-left'};if(i<=30)return{row:1,col:1+(i-20),edge:'edge-top'};return{row:1+(i-30),col:11,edge:'edge-right'}}
+
+function ringSlotGeometry(i){
+  const pct=100/11,ring='var(--ring-w)';
+  if(i===0)return{edge:'edge-bottom',corner:true,left:`calc(${10*pct}% - ${ring})`,top:`calc(${10*pct}% - ${ring})`,width:ring,height:ring};
+  if(i===10)return{edge:'edge-bottom',corner:true,left:`${pct}%`,top:`calc(${10*pct}% - ${ring})`,width:ring,height:ring};
+  if(i===20)return{edge:'edge-left',corner:true,left:`${pct}%`,top:`${pct}%`,width:ring,height:ring};
+  if(i===30)return{edge:'edge-top',corner:true,left:`calc(${10*pct}% - ${ring})`,top:`${pct}%`,width:ring,height:ring};
+  const e=edgeInfo(i);
+  if(e.edge==='edge-bottom')return{edge:e.edge,left:`${(e.col-1)*pct}%`,top:`calc(${10*pct}% - ${ring})`,width:`${pct}%`,height:ring};
+  if(e.edge==='edge-top')return{edge:e.edge,left:`${(e.col-1)*pct}%`,top:`${pct}%`,width:`${pct}%`,height:ring};
+  if(e.edge==='edge-left')return{edge:e.edge,left:`${pct}%`,top:`${(e.row-1)*pct}%`,width:ring,height:`${pct}%`};
+  return{edge:e.edge,left:`calc(${10*pct}% - ${ring})`,top:`${(e.row-1)*pct}%`,width:ring,height:`${pct}%`};
+}
+function initPawnRing(){
+  const board=document.getElementById('board');
+  board.querySelectorAll('.ring-slot').forEach(x=>x.remove());
+  for(let i=0;i<40;i++){
+    const g=ringSlotGeometry(i),slot=document.createElement('div');
+    slot.id=`ring-${i}`;
+    slot.className=`ring-slot ${g.edge}${g.corner?' corner-ring':''}`;
+    slot.style.left=g.left;slot.style.top=g.top;slot.style.width=g.width;slot.style.height=g.height;
+    slot.innerHTML=`<div id="ringpawns-${i}" class="ring-pawns"></div>`;
+    board.appendChild(slot);
+  }
+}
+function renderPawnRing(){
+  document.querySelectorAll('.ring-slot').forEach(s=>{s.classList.remove('current-ring');s.style.removeProperty('--ring-color')});
+  document.querySelectorAll('.ring-pawns').forEach(x=>x.innerHTML='');
+  const groups={};
+  players.forEach((p,idx)=>{(groups[p.pos]??=[]).push({p,idx})});
+  Object.entries(groups).forEach(([pos,arr])=>{
+    const slot=document.getElementById(`ring-${pos}`),box=document.getElementById(`ringpawns-${pos}`);
+    if(!slot||!box)return;
+    box.style.setProperty('--n',arr.length);
+    if(arr.some(x=>x.idx===currentTurn&&!gameOver)){slot.classList.add('current-ring');slot.style.setProperty('--ring-color',players[currentTurn].color)}
+    arr.forEach(({p,idx})=>box.insertAdjacentHTML('beforeend',
+      `<div class="ring-pawn ${idx===currentTurn&&!gameOver?'active':''}" style="--pc:${p.color};--n:${arr.length}">
+        <div class="ring-figure"><div class="ring-head"></div><div class="ring-body"></div></div>
+        <div class="ring-name">${esc(p.name)}</div>
+      </div>`));
+  });
+}
+
+function initBoard(){
+  const board=document.getElementById('board');
+  [...board.querySelectorAll('.cell,.ring-slot')].forEach(x=>x.remove());
+  for(let i=0;i<40;i++){
+    const {row,col,edge}=edgeInfo(i),d=landData[i],c=document.createElement('div');
+    c.id=`cell-${i}`;c.className=`cell ${edge} ${tileClass(i)}`;c.style.gridRow=row;c.style.gridColumn=col;
+    c.innerHTML=`<div class="cell-inner">
+      <div class="cell-name">${esc(tileNames[i])}</div>
+      ${d?`<div id="levelin-${i}" class="level-in hidden"></div>`:''}
+      <div class="model-wrap"><div id="model-${i}" class="model3d glass">${createModel3D(i)}</div></div>
+      ${d?`<div id="price-${i}" class="cell-price">${d.buy}Đ</div>`:''}
+      <div id="mortx-${i}" class="mortgage-x hidden"></div>
+      <div id="tokens-${i}" class="tokens"></div>
+    </div>`;
+    board.appendChild(c);
+  }
+  initPawnRing();
+  requestAnimationFrame(()=>{fitTileNames();requestAnimationFrame(fitTileNames)});
+}
+function updateAll(){updateBoard();updateHistories();updateTurnPill();applyTurnTheme();updateOnlineTurnLock();scheduleOnlineSync('updateAll')}
+function hexContrast(hex){const h=String(hex||'#3b82f6').replace('#','');if(h.length!==6)return '#fff';const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000>155?'#111827':'#fff'}
+function applyTurnTheme(){const p=current(),c=p?.color||'#3b82f6',center=document.getElementById('center');if(!center)return;center.style.setProperty('--turn-color',c);center.style.setProperty('--turn-text',hexContrast(c));center.style.borderColor=c;document.querySelectorAll('.die').forEach(el=>{el.style.background=c;el.style.color=hexContrast(c)})}
+function displayRentForBoard(pos){const prop=properties[pos],d=landData[pos];if(!prop||!d)return null;if(prop.mortgaged)return 0;if(d.type==='airport'){const count=Object.values(properties).filter(x=>x.ownerId===prop.ownerId&&landData[x.pos]?.type==='airport'&&!x.mortgaged).length;return[0,25,50,100,200][count]||0}if(d.type==='utility'){const active=Object.values(properties).filter(x=>x.ownerId===prop.ownerId&&landData[x.pos]?.type==='utility'&&!x.mortgaged).length;return active>=2?'×10':'×4'}return d.r[prop.level]}
+function levelInMarkup(prop,d){
+  if(prop.mortgaged)return `THẾ CHẤP`;
+  if(d.type||prop.level<=0)return '';
+  if(prop.level===4)return `<div class="star-row"><span>★</span><span>★</span><span>★</span></div><div class="star-row"><span>★</span><span>★</span></div>`;
+  return `<div class="house-stars">${'★'.repeat(prop.level)}</div>`;
+}
+function updateBoard(){
+  for(let i=0;i<40;i++){
+    const c=document.getElementById(`cell-${i}`);if(!c)continue;
+    c.classList.remove('mortgaged');c.style.background='';c.style.borderColor='';
+    const model=document.getElementById(`model-${i}`),x=document.getElementById(`mortx-${i}`),price=document.getElementById(`price-${i}`),levelIn=document.getElementById(`levelin-${i}`);
+    if(x)x.classList.add('hidden');
+    if(levelIn){levelIn.className='level-in hidden';levelIn.innerHTML=''}
+    if(model){model.classList.remove('owned','mortgaged-model');model.classList.add('glass')}
+    const prop=properties[i],d=landData[i];
+    if(prop&&d){
+      const owner=players[prop.ownerId];
+      if(model){model.classList.remove('glass');model.classList.add(prop.mortgaged?'mortgaged-model':'owned')}
+      if(prop.mortgaged){
+        c.classList.add('mortgaged');c.style.background='#6b7280';
+        if(x)x.classList.remove('hidden');
+        if(levelIn){levelIn.textContent='THẾ CHẤP';levelIn.className='level-in mort'}
+      }else{
+        if(d.type==='airport'){c.style.background='#050505';c.style.borderColor='#050505'}
+        else{c.style.background=owner.color;c.style.borderColor=owner.color}
+        if(levelIn&&!d.type&&prop.level>0){
+          levelIn.innerHTML=levelInMarkup(prop,d);
+          levelIn.className=`level-in${prop.level===4?' hotel':''}`;
+        }
+      }
+      if(price){const rent=displayRentForBoard(i);price.classList.add('rent');price.textContent=typeof rent==='number'?`${rent}Đ`:rent}
+    }else if(d){
+      if(model)model.classList.add('glass');
+      if(price){price.classList.remove('rent');price.textContent=`${d.buy}Đ`}
+    }
+  }
+  renderPawnRing();
+}
+function assetFontForCount(n){
+  if(n<=4)return '13px';
+  if(n<=8)return '11px';
+  if(n<=12)return '9.5px';
+  if(n<=18)return '8px';
+  if(n<=24)return '7px';
+  return '6px';
+}
+function assetMobileFontForCount(n){
+  if(n<=4)return '7.5px';
+  if(n<=8)return '6.8px';
+  if(n<=12)return '6.1px';
+  if(n<=18)return '5.4px';
+  if(n<=24)return '4.8px';
+  return '4.2px';
+}
+function assetButtonForCount(n){
+  if(n<=8)return '30px';
+  if(n<=14)return '25px';
+  if(n<=20)return '21px';
+  return '18px';
+}
+function assetStatusText(pos,dp){
+  const d=landData[pos];
+  if(dp.sold)return 'ĐÃ BÁN HẲN';
+  if(dp.mortgaged)return 'THẾ CHẤP';
+  if(d.type==='airport')return 'Ga hoạt động';
+  if(d.type==='utility')return 'Tiện ích hoạt động';
+  return levelName(dp.level);
+}
+function playerAssetManagerHTML(p,buttonId='assetCommitPanel'){
+  const s=assetState;
+  if(!s||s.playerId!==p.id)return '';
+  const positions=Object.keys(s.draft).map(Number).sort((a,b)=>a-b);
+  const rows=positions.map(pos=>{
+    const dp=s.draft[pos],mi=assetMinusInfo(pos),pi=assetPlusInfo(pos),si=assetSellInfo(pos);
+    return `<div class="asset-card-row">
+      <div class="asset-card-name" title="${esc(tileNames[pos])}">${esc(tileNames[pos])}<small>${esc(assetStatusText(pos,dp))}</small></div>
+      <div class="asset-card-control"><button class="minus" ${mi.ok?'':'disabled'} onclick="assetMinus(${pos})">−</button><span class="asset-card-value">${mi.text}</span></div>
+      <div class="asset-card-control"><button class="plus" ${pi.ok?'':'disabled'} onclick="assetPlus(${pos})">+</button><span class="asset-card-value">${pi.text}</span></div>
+      <div class="asset-card-sell"><button class="${si.undo?'undo':''}" ${si.ok?'':'disabled'} title="${si.title||''}" onclick="assetSell(${pos})">${si.undo?'↩':'BÁN'}</button><span class="asset-card-value">${si.text}</span></div>
+    </div>`;
+  }).join('');
+  const phase=s.phase==='pre'?'TRƯỚC KHI XÚC XẮC':'SAU LẦN XÚC CUỐI';
+  const commit='✅ XONG – QUAY LẠI';
+  return `<div class="asset-card-phase">🏦 CHUỘC / THẾ CHẤP / BÁN • ${phase}</div>
+    <div class="asset-card-money">
+      <div class="asset-card-stat"><span>Tiền hiện tại</span><b>${money(s.baseMoney)}</b></div>
+      <div class="asset-card-stat"><span>Sau điều chỉnh</span><b>${money(s.draftMoney)}</b></div>
+    </div>
+    <div class="asset-card-list ${positions.length>10?'asset-dense':''}" data-asset-count="${positions.length}" style="--asset-count:${Math.max(1,positions.length)};--asset-rows:${Math.max(1,Math.ceil(positions.length/(positions.length>10?2:1)))};--asset-font:${assetFontForCount(positions.length)};--asset-font-mobile:${assetMobileFontForCount(positions.length)};--asset-btn:${assetButtonForCount(positions.length)}">
+      ${rows||'<div class="asset-card-empty">Chưa sở hữu tài sản nào.</div>'}
+    </div>
+    <button id="${buttonId}" class="asset-card-commit" style="--active-color:${p.color}">${commit}</button>`;
+}
+function fitAssetNames(){
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.asset-card-name').forEach(el=>{
+      const list=el.closest('.asset-card-list');
+      const count=Number(list?.dataset.assetCount||0);
+      let size=parseFloat(getComputedStyle(el).fontSize)||7;
+      const floor=count>24?3.6:count>18?4:count>10?4.4:5;
+      el.style.removeProperty('font-size');
+      size=parseFloat(getComputedStyle(el).fontSize)||size;
+      let guard=32;
+      while(guard-->0&&size>floor&&(el.scrollWidth>el.clientWidth+.5||el.scrollHeight>el.clientHeight+.5)){
+        size=Math.max(floor,size-.25);
+        el.style.setProperty('font-size',`${size}px`,'important');
+      }
+    });
+  });
+}
+function playerAssetCounts(p){
+  const counts={land:0,station:0,utility:0};
+  Object.values(properties).filter(x=>x.ownerId===p.id).forEach(pr=>{
+    const type=landData[pr.pos]?.type;
+    if(type==='airport')counts.station++;
+    else if(type==='utility')counts.utility++;
+    else counts.land++;
+  });
+  return counts;
+}
+function fitPlayerTileNames(){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.player-name-line').forEach(el=>{
+      el.style.removeProperty('font-size');
+      let size=parseFloat(getComputedStyle(el).fontSize)||10;
+      const floor=el.closest('.player-tile')?.classList.contains('active')?8:5.5;
+      let guard=40;
+      while(guard-->0&&size>floor&&el.scrollWidth>el.clientWidth+.5){
+        size=Math.max(floor,size-.25);
+        el.style.setProperty('font-size',`${size}px`,'important');
+      }
+    });
+  }));
+}
+function layoutPlayerOrbit(){
+  const strip=document.getElementById('playerStrip');
+  if(!strip||!players.length||!strip.clientWidth||!strip.clientHeight)return;
+  const width=strip.clientWidth,height=strip.clientHeight,edge=1,gap=4,rowGap=4;
+  const activeSize=Math.max(1,height);
+  const smallCount=Math.max(0,players.length-1);
+  const bottomCount=Math.ceil(smallCount/2);
+  const cols=Math.max(1,bottomCount);
+  const smallArea=Math.max(1,width-activeSize-gap-edge*2);
+  const colGap=3;
+  const smallW=Math.max(1,(smallArea-colGap*(cols-1))/cols);
+  const smallH=Math.max(1,(height-rowGap)/2);
+  const targets={};
+  players.forEach((p,idx)=>{
+    const offset=(idx-currentTurn+players.length)%players.length;
+    let x,y,w,h;
+    if(offset===0){x=edge;y=0;w=activeSize;h=activeSize}
+    else{
+      let row,col;
+      if(offset<=bottomCount){row=1;col=offset-1}
+      else{row=0;col=smallCount-offset}
+      x=edge+activeSize+gap+col*(smallW+colGap);
+      y=row===0?0:smallH+rowGap;
+      w=smallW;h=smallH;
+    }
+    targets[p.id]={x,y,w,h};
+  });
+  const tiles=[...strip.querySelectorAll('.player-tile')];
+  tiles.forEach(el=>{
+    const id=Number(el.dataset.playerId),target=targets[id],old=playerOrbitCache[id]||target;
+    if(!target)return;
+    el.style.width=`${old.w}px`;el.style.height=`${old.h}px`;
+    el.style.transform=`translate3d(${old.x}px,${old.y}px,0)`;
+  });
+  void strip.offsetWidth;
+  requestAnimationFrame(()=>tiles.forEach(el=>{
+    const target=targets[Number(el.dataset.playerId)];if(!target)return;
+    el.style.width=`${target.w}px`;el.style.height=`${target.h}px`;
+    el.style.transform=`translate3d(${target.x}px,${target.y}px,0)`;
+  }));
+  playerOrbitCache=targets;
+  fitPlayerTileNames();
+}
+function updateGlobalHistory(){
+  const list=document.getElementById('gameHistoryList');if(!list)return;
+  if(!gameHistory.length){list.innerHTML='<div class="game-history-empty">Chưa có giao dịch.</div>';return}
+  list.innerHTML=gameHistory.slice(0,20).map(tx=>{
+    const p=players.find(x=>x.id===tx.playerId);if(!p)return '';
+    const participants=(tx.participantIds||[]).filter(id=>id!==undefined);
+    const squares=participants.length>1?participants.map(id=>{const who=players.find(x=>x.id===id);return who?`<span class="participant-square" title="${esc(who.name)}" style="background:${who.color}"></span>`:''}).join(''):'';
+    const sign=tx.amount>=0?'+':'−';
+    return `<div class="global-tx-row" style="--row-color:${p.color};--row-text:${hexContrast(p.color)}">
+      <div class="global-tx-content"><b>${esc(p.name)}</b> — ${esc(tx.reason)}</div>
+      <div class="global-tx-amount">${sign}${money(Math.abs(tx.amount))}</div>
+      <div class="global-tx-participants">${squares}</div>
+    </div>`;
+  }).join('');
+}
+function renderPreAssetPanel(){
+  const panel=document.getElementById('playerActionPanel');
+  if(!panel||!assetState||assetState.phase!=='pre')return;
+  const p=players[assetState.playerId];
+  panel.classList.add('open');panel.style.setProperty('--active-color',p.color);
+  panel.innerHTML=`${playerAssetManagerHTML(p,'assetCommitPlayer')}`;
+  const b=document.getElementById('assetCommitPlayer');if(b)b.onclick=()=>guard(()=>commitAssetManager(),b);
+  fitAssetNames();
+}
+function renderPostAssetCenter(){
+  const center=document.getElementById('center'),msg=document.getElementById('message');
+  if(!center||!msg||!assetState||assetState.phase!=='post')return;
+  const p=players[assetState.playerId];
+  leaveMetroMode();
+  center.classList.remove('center-card-mode','center-asset-mode','center-asset-pre-mode','center-asset-post-mode');
+  center.classList.add('center-asset-v27-mode');
+  document.getElementById('confirmZone').innerHTML='';document.getElementById('actions').innerHTML='';
+  msg.innerHTML=`<div class="center-asset-v27-shell" style="--active-color:${p.color}">
+    <div class="center-asset-v27-head"><div class="center-asset-v27-name">${esc(p.name)}</div><div class="center-asset-v27-cash">${money(p.money)}</div></div>
+    ${playerAssetManagerHTML(p,'assetCommitCenter')}
+  </div>`;
+  const b=document.getElementById('assetCommitCenter');if(b)b.onclick=()=>guard(()=>commitAssetManager(),b);
+  fitAssetNames();
+}
+function leaveAssetCenterMode(){
+  const center=document.getElementById('center');
+  if(center)center.classList.remove('center-asset-mode','center-asset-pre-mode','center-asset-post-mode','center-asset-v27-mode');
+}
+function updateHistories(){
+  const strip=document.getElementById('playerStrip'),panel=document.getElementById('playerActionPanel');
+  if(!strip)return;
+  const preMenu=turnGate==='pre'&&!assetState;
+  strip.innerHTML=players.map((p,idx)=>{
+    const c=playerAssetCounts(p),active=idx===currentTurn&&!gameOver;
+    const controls=active&&preMenu?`<div class="pre-turn-mini-controls"><button id="preManageAssets" class="btn-blue" title="Chuộc, thế chấp hoặc bán tài sản">🏦 CHUỘC / THẾ CHẤP</button><button id="preRollDice" class="btn-main">🎲 XÚC XẮC</button></div>`:'';
+    return `<article class="player-tile ${active?'active':''} ${active&&preMenu?'has-pre-controls':''}" data-player-id="${p.id}" style="--player-color:${p.color}">
+      <div class="player-info-row player-name-line" title="${esc(p.name)}">${esc(p.name)}</div>
+      <div class="player-info-row player-money-line"><span class="player-money-value">${money(p.money)}</span></div>
+      <div class="player-info-row player-assets-line"><span class="asset-count-chip">🏠-${c.land}</span><span class="asset-count-chip">🚉-${c.station}</span><span class="asset-count-chip">🏭-${c.utility}</span></div>
+      ${controls}
+    </article>`;
+  }).join('');
+  const manage=document.getElementById('preManageAssets'),roll=document.getElementById('preRollDice');
+  if(manage)manage.onclick=()=>guard(()=>showAssetManager('pre',current()),manage);
+  if(roll)roll.onclick=()=>guard(()=>beginTurnRoll(current()),roll);
+  layoutPlayerOrbit();
+  if(panel){panel.classList.remove('open');panel.innerHTML='';panel.style.removeProperty('--active-color')}
+  if(assetState?.phase==='pre'){renderPreAssetPanel();leaveAssetCenterMode()}
+  else if(assetState?.phase==='post')renderPostAssetCenter();
+  else leaveAssetCenterMode();
+  updateGlobalHistory();
+}
+function updateTurnPill(){const p=current();document.getElementById('turnPill').innerHTML=p?`Lượt: <span style="color:${p.color}">${esc(p.name)}</span>`:'—'}function diceFace(v){const n=Number(v);return Number.isInteger(n)&&n>=1&&n<=6?String(n):v}function setDice(a='–',b='–'){document.getElementById('die1').textContent=diceFace(a);document.getElementById('die2').textContent=diceFace(b)}
+function guard(fn,btn){if(onlineRoomCode&&!canLocalGameAction()){announceOnline('Chưa đến lượt của bạn.');return}if(clickLocked||busy||gameOver&&btn?.dataset.allow!=='restart')return;if(btn?.dataset.side)lastButtonSide=btn.dataset.side;clickLocked=true;if(btn)btn.disabled=true;Promise.resolve().then(()=>fn()).finally(()=>setTimeout(()=>{clickLocked=false},150))}
+function oppositeSide(){return lastButtonSide==='left'?'right':'left'}function applyButtonSlot(btn,side){btn.classList.add('control-btn',side==='left'?'slot-left':side==='right'?'slot-right':'slot-center');btn.dataset.side=side;return btn}
+function leaveMetroMode(){const center=document.getElementById('center');if(!center)return;center.classList.remove('center-metro-mode');center.style.removeProperty('grid-template-rows')}
+function setUI(html,buttons=[]){leaveAssetCenterMode();leaveMetroMode();document.getElementById('center').classList.remove('center-card-mode');document.getElementById('message').innerHTML=html;document.getElementById('confirmZone').innerHTML='';const a=document.getElementById('actions');a.innerHTML='';const preferred=oppositeSide();buttons.forEach((b,i)=>{const btn=document.createElement('button');btn.className=b.cls||'btn-ghost';btn.textContent=b.text;if(b.disabled)btn.disabled=true;let side;if(buttons.length===1)side=preferred;else if(buttons.length===2)side=i===0?'left':'right';else side=['left','center','right'][i%3];applyButtonSlot(btn,side);btn.onclick=()=>guard(b.fn,btn);a.appendChild(btn)});updateAll()}
+function showConfirm(text,fn){leaveAssetCenterMode();document.getElementById('confirmZone').innerHTML='';const a=document.getElementById('actions');a.innerHTML='';const b=document.createElement('button');b.className='btn-blue confirm-btn';b.textContent=text;applyButtonSlot(b,oppositeSide());b.onclick=()=>guard(fn,b);a.appendChild(b)}
+function showPreRollMenu(p){
+  if(gameOver)return;
+  turnGate='pre';assetState=null;setDice();
+  setUI(`<div class="turn-gate-note"><b>🎲 ${esc(p.name)} chuẩn bị xúc xắc</b>Chọn <strong>chuộc / thế chấp</strong> hoặc <strong>xúc xắc</strong> tại ô vuông lớn bên trái dải người chơi.</div>`,[]);
+}
+function beginTurnRoll(p){
+  if(gameOver||p.id!==current().id)return;
+  turnGate=null;
+  return p.inJail?showJailStart(p):rollDice();
+}
+function showPostTurnMenu(p){
+  if(gameOver)return;
+  turnGate='post';assetState=null;
+  setUI(`<div class="turn-gate-note"><b>✅ ${esc(p.name)} đã hoàn tất di chuyển</b>Chọn thao tác cuối lượt tại ô trung tâm.</div>`,[
+    {text:'🏦 CHUỘC / THẾ CHẤP / BÁN',cls:'btn-blue',fn:()=>showAssetManager('post',p)},
+    {text:'✅ KẾT THÚC LƯỢT CHƠI',cls:'btn-main',fn:()=>{turnGate=null;endTurn()}}
+  ]);
+}
+function startTurn(){if(gameOver)return;busy=false;const p=current();showPreRollMenu(p)}
+function showAssetManager(phase,p){
+  if(gameOver)return;
+  turnGate=phase;
+  const own=Object.values(properties).filter(x=>x.ownerId===p.id).sort((a,b)=>a.pos-b.pos),draft={},original={},ops={};
+  own.forEach(pr=>{original[pr.pos]={level:pr.level,mortgaged:pr.mortgaged};draft[pr.pos]={level:pr.level,mortgaged:pr.mortgaged,sold:false};ops[pr.pos]=[]});
+  assetState={phase,playerId:p.id,baseMoney:p.money,draftMoney:p.money,original,draft,ops};
+  document.getElementById('confirmZone').innerHTML='';
+  document.getElementById('actions').innerHTML='';
+  if(phase==='pre')document.getElementById('message').innerHTML=`<div class="turn-gate-note"><b>🏦 ${esc(p.name)} đang quản lý tài sản</b>Bảng Chuộc / Thế chấp / Bán đang mở ngay dưới dải người chơi.</div>`;
+  updateAll();
+}
+function assetMinus(pos){
+  const s=assetState,d=landData[pos],dp=s?.draft[pos];if(!s||!dp||dp.sold)return;
+  const stack=s.ops[pos],last=stack[stack.length-1];
+  if(last&&last.type==='redeem'){
+    stack.pop();dp.mortgaged=true;s.draftMoney+=last.cost;renderAssetManager();return;
+  }
+  if(dp.mortgaged)return;
+  if(!d.type&&dp.level>0){const gain=Math.floor(d.build/2);dp.level--;s.draftMoney+=gain;stack.push({type:'level',cash:gain});}
+  else{dp.mortgaged=true;s.draftMoney+=d.mort;stack.push({type:'mort',cash:d.mort});}
+  renderAssetManager();
+}
+function assetPlus(pos){
+  const s=assetState,d=landData[pos],dp=s?.draft[pos];if(!s||!dp||dp.sold)return;
+  const stack=s.ops[pos],last=stack[stack.length-1];
+  if(last&&(last.type==='mort'||last.type==='level')){
+    if(s.draftMoney<last.cash)return;
+    stack.pop();s.draftMoney-=last.cash;if(last.type==='mort')dp.mortgaged=false;else dp.level++;renderAssetManager();return;
+  }
+  if(dp.mortgaged){if(s.draftMoney<d.redeem)return;dp.mortgaged=false;s.draftMoney-=d.redeem;stack.push({type:'redeem',cost:d.redeem});renderAssetManager();}
+}
+function assetSell(pos){
+  const s=assetState,d=landData[pos],dp=s?.draft[pos];if(!s||!dp)return;
+  const stack=s.ops[pos],last=stack[stack.length-1];
+  if(dp.sold&&last?.type==='sell'){
+    if(s.draftMoney<last.cash)return;
+    stack.pop();dp.sold=false;s.draftMoney-=last.cash;renderAssetManager();return;
+  }
+  if(dp.sold)return;
+  if(!d.type&&dp.level>0)return;
+  const gain=dp.mortgaged?d.sellMort:d.sellActive;
+  dp.sold=true;s.draftMoney+=gain;stack.push({type:'sell',cash:gain});
+  renderAssetManager();
+}
+function assetMinusInfo(pos){
+  const s=assetState,d=landData[pos],dp=s.draft[pos],stack=s.ops[pos],last=stack[stack.length-1];
+  if(dp.sold)return {ok:false,text:'—',kind:'asset-muted'};
+  if(last?.type==='redeem')return {ok:true,text:`+${money(last.cost)}`,kind:'pluscash',title:'Hoàn tác chuộc'};
+  if(dp.mortgaged)return {ok:false,text:'—',kind:'asset-muted'};
+  if(!d.type&&dp.level>0)return {ok:true,text:`+${money(Math.floor(d.build/2))}`,kind:'pluscash',title:'Hạ 1 cấp'};
+  return {ok:true,text:`+${money(d.mort)}`,kind:'pluscash',title:'Thế chấp'};
+}
+function assetPlusInfo(pos){
+  const s=assetState,d=landData[pos],dp=s.draft[pos],stack=s.ops[pos],last=stack[stack.length-1];
+  if(dp.sold)return {ok:false,text:'—',kind:'asset-muted'};
+  if(last&&(last.type==='mort'||last.type==='level'))return {ok:s.draftMoney>=last.cash,text:`−${money(last.cash)}`,kind:'minuscash',title:'Hoàn tác thao tác −'};
+  if(dp.mortgaged)return {ok:s.draftMoney>=d.redeem,text:`−${money(d.redeem)}`,kind:'minuscash',title:'Chuộc = 55% giá mua'};
+  return {ok:false,text:'—',kind:'asset-muted'};
+}
+function assetSellInfo(pos){
+  const s=assetState,d=landData[pos],dp=s.draft[pos],stack=s.ops[pos],last=stack[stack.length-1];
+  if(dp.sold&&last?.type==='sell')return {ok:s.draftMoney>=last.cash,text:`−${money(last.cash)}`,undo:true,title:'Hoàn tác bán'};
+  if(dp.sold)return {ok:false,text:'—'};
+  if(!d.type&&dp.level>0)return {ok:false,text:'Hạ cấp',title:'Phải hạ về cấp 0 trước khi bán hẳn'};
+  const gain=dp.mortgaged?d.sellMort:d.sellActive;
+  return {ok:true,text:`+${money(gain)}`,undo:false,title:dp.mortgaged?'Bán hẳn = 5% giá mua':'Bán hẳn = 55% giá mua'};
+}
+function renderAssetManager(){
+  if(!assetState)return;
+  updateHistories();
+}
+function commitAssetManager(){
+  const s=assetState;if(!s)return;const p=players[s.playerId];
+  Object.keys(s.draft).map(Number).forEach(pos=>{
+    const prop=properties[pos],d=landData[pos],dp=s.draft[pos],ops=s.ops[pos]||[];if(!prop)return;
+    if(dp.sold){
+      ops.forEach(op=>{
+        if(op.type==='level')addTx(p,`Hạ cấp ${tileNames[pos]} (Ngân hàng)`,+op.cash);
+        else if(op.type==='mort')addTx(p,`Thế chấp ${tileNames[pos]} (Ngân hàng)`,+op.cash);
+        else if(op.type==='redeem')addTx(p,`Chuộc ${tileNames[pos]} (Ngân hàng)`,-op.cost);
+        else if(op.type==='sell')addTx(p,`Bán hẳn ${tileNames[pos]} (Ngân hàng)`,+op.cash);
+      });
+      delete properties[pos];return;
+    }
+    const orig=s.original[pos];
+    if(prop.level!==dp.level){
+      const n=Math.max(0,orig.level-dp.level);
+      if(n)addTx(p,`Hạ cấp ${tileNames[pos]} (Ngân hàng)`,+n*Math.floor(d.build/2));
+      prop.level=dp.level;
+    }
+    if(prop.mortgaged!==dp.mortgaged){
+      if(dp.mortgaged)addTx(p,`Thế chấp ${tileNames[pos]} (Ngân hàng)`,+d.mort);
+      else addTx(p,`Chuộc ${tileNames[pos]} (Ngân hàng)`,-d.redeem);
+      prop.mortgaged=dp.mortgaged;
+    }
+  });
+  p.money=s.draftMoney;
+  const phase=s.phase;
+  assetState=null;
+  leaveAssetCenterMode();
+  updateAll();
+  if(phase==='pre')return showPreRollMenu(p);
+  return showPostTurnMenu(p);
+}
+
+function rollPair(){return[1+Math.floor(Math.random()*6),1+Math.floor(Math.random()*6)]}
+async function animateDiceRoll(final1,final2,duration=1000){busy=true;const e1=document.getElementById('die1'),e2=document.getElementById('die2');e1.classList.add('rolling');e2.classList.add('rolling');document.getElementById('confirmZone').innerHTML='';document.getElementById('actions').innerHTML='';document.getElementById('message').innerHTML='<strong>🎲 ĐANG GIEO XÚC XẮC...</strong><br>Hai xúc xắc quay trong 1 giây.';const started=performance.now();await new Promise(resolve=>{const timer=setInterval(()=>{setDice(1+Math.floor(Math.random()*6),1+Math.floor(Math.random()*6));if(performance.now()-started>=duration){clearInterval(timer);resolve()}},70)});setDice(final1,final2);e1.classList.remove('rolling');e2.classList.remove('rolling');busy=false}
+async function rollDice(){if(gameOver)return;const result=rollPair();d1=result[0];d2=result[1];const p=current();await animateDiceRoll(d1,d2,1000);extraTurn=d1===d2;if(extraTurn)doublesCount++;else doublesCount=0;log(`${p.name} gieo <b>${d1}</b> và <b>${d2}</b>.`);if(doublesCount>=3){sendToJail(p);return}document.getElementById('message').innerHTML=`<strong>${d1} + ${d2} = ${d1+d2} BƯỚC</strong><br>Đang tự động di chuyển...`;await animateMoveBy(p,d1+d2,1,true);processTile(p,false)}
+function pathFor(start,steps,dir=1){let arr=[];let pos=start;for(let i=0;i<steps;i++){pos=(pos+dir+40)%40;arr.push(pos)}return arr}
+async function animateMoveBy(p,steps,dir=1,grantStart=true){busy=true;const path=pathFor(p.pos,steps,dir),target=path[path.length-1]??p.pos;if(dir>0&&grantStart&&path.includes(0)){credit(p,200,'Qua START (Ngân hàng)');updateAll()}path.forEach(i=>{const c=document.getElementById(`cell-${i}`);c.style.setProperty('--flash',p.color);c.classList.add('path-flash')});document.getElementById('confirmZone').innerHTML='';document.getElementById('actions').innerHTML='';document.getElementById('message').innerHTML=`<strong>${d1||''}${d1?' + ':''}${d2||''}${d1&&d2?` = ${steps} BƯỚC`:''}</strong><br>Đang di chuyển...`;await sleep(1000);path.forEach(i=>document.getElementById(`cell-${i}`).classList.remove('path-flash'));p.pos=target;busy=false;updateAll()}
+async function moveBy(p,steps,dir=1,grantStart=true){await animateMoveBy(p,steps,dir,grantStart)}async function moveTo(p,target,grantStart=true,process=true){let steps=(target-p.pos+40)%40;if(steps===0)steps=40;await animateMoveBy(p,steps,1,grantStart);if(process)processTile(p,false)}function findNext(start,pred){for(let s=1;s<=40;s++){let i=(start+s)%40;if(pred(i))return i}return start}
+function nextButtons(){return[{text:'TIẾP TỤC',cls:'btn-main',fn:finishAction,wide:true}]}
+function finishAction(){if(gameOver)return;const p=current();if(extraTurn&&!p.inJail&&doublesCount<3){setUI(`<div class="double-next">🎲 ${esc(p.name)} ĐƯỢC XÚC TIẾP</div><div class="double-sub">Vừa ra đôi. Không mở quản lý tài sản giữa các lần xúc đôi.</div>`,[{text:'🎲 XÚC XẮC TIẾP',cls:'btn-main',fn:()=>{extraTurn=false;rollDice()},wide:true}]);return}showPostTurnMenu(p)}
+function endTurn(){if(gameOver)return;turnGate=null;assetState=null;extraTurn=false;currentTurn=(currentTurn+1)%players.length;doublesCount=0;startTurn()}
+function showArrivalBanner(p){
+  busy=true;document.getElementById('confirmZone').innerHTML='';document.getElementById('actions').innerHTML='';
+  document.getElementById('message').innerHTML=`<div class="arrival-banner">${esc(tileNames[p.pos])}</div>`;
+  setTimeout(()=>{busy=false;processTile(p,true)},1000);
+}
+function processTile(p,arrivalShown=false){if(gameOver)return;if(!arrivalShown){showArrivalBanner(p);return}const pos=p.pos,d=landData[pos],name=tileNames[pos];if(pos===0){setUI(`🏁 <strong>START</strong><br>${p.name} đang ở điểm xuất phát.`,nextButtons());return}if(pos===30){sendToJail(p);return}if(pos===10){
+  setUI(`🚇 <strong>Metro Suối Tiên</strong><br>Bạn có thể đứng yên hoặc trả <strong>${money(Math.ceil(p.money/2))}</strong> (50% tiền mặt) để đến một ô bất kỳ.<br>Di chuyển bằng Metro không nhận 200Đ khi đi qua hoặc tới START.`,[
+    {text:'🚇 DI CHUYỂN',cls:'btn-blue',fn:()=>showMetroChooser(p)},
+    {text:'🛑 ĐỨNG YÊN',cls:'btn-ghost',fn:finishAction}
+  ]);
+  return
+}if(pos===20){setUI(`🅿️ <strong>Bãi Đỗ Xe</strong><br>Không có hiệu ứng.`,nextButtons());return}if(pos===4||pos===38){let amt=pos===4?200:100;setUI(`💸 <strong>${name}</strong><br>Phải nộp <strong>${money(amt)}</strong> cho Ngân hàng.`,[{text:`Nộp ${money(amt)}`,cls:'btn-bad',fn:()=>pay(p,amt,null,`${name} (Ngân hàng)`,finishAction),wide:true}]);return}if([2,17,33].includes(pos)){offerDraw('chest',p);return}if([7,22,36].includes(pos)){offerDraw('chance',p);return}if(d){handleProperty(p,pos,d);return}setUI(`📍 <strong>${name}</strong>`,nextButtons())}
+function levelName(l){return['Đất trống','1 nhà','2 nhà','3 nhà','Khách sạn'][l]}
+function handleProperty(p,pos,d){const prop=properties[pos];if(!prop){setUI(`${icons[pos]} <strong>${tileNames[pos]}</strong><br>Giá mua: <strong>${money(d.buy)}</strong><br>Tài sản vô chủ.`,[{text:`Mua ${money(d.buy)}`,cls:'btn-main',fn:()=>buyProperty(p,pos,d)},{text:'Bỏ qua',cls:'btn-ghost',fn:finishAction}]);return}const owner=players[prop.ownerId];if(owner.id===p.id){let buttons=[];if(!prop.mortgaged&&!d.type&&prop.level<4)buttons.push({text:`Nâng cấp ${money(d.build)}`,cls:'btn-main',fn:()=>build(p,pos,d)});buttons.push({text:'Xong',cls:'btn-ghost',fn:finishAction,wide:true});setUI(`🏠 <strong>${tileNames[pos]}</strong><br>Tài sản của bạn.${prop.mortgaged?'<br>⚫ Đang thế chấp — có thể chuộc trong bảng Chuộc / Thế chấp tài sản.':!d.type?`<br>Cấp: <strong>${levelName(prop.level)}</strong>`:''}`,buttons);return}if(prop.mortgaged){setUI(`⚫ <strong>${tileNames[pos]}</strong> đang thế chấp.<br>Không thu tiền thuê.`,nextButtons());return}let rent=getRent(pos);if(p.rentFree>0){p.rentFree--;returnHeldCard('chance',7);log(`${p.name} dùng thẻ miễn thuê tại ${tileNames[pos]}.`);updateAll();setUI(`🎟️ Thẻ miễn thuê kích hoạt.<br>Không phải trả <strong>${money(rent)}</strong> cho ${owner.name}.`,nextButtons());return}setUI(`💰 <strong>${tileNames[pos]}</strong> thuộc ${esc(owner.name)}.<br>Tiền thuê: <strong>${money(rent)}</strong>`,[{text:`Trả ${money(rent)}`,cls:'btn-bad',fn:()=>pay(p,rent,owner,`Trả thuê ${tileNames[pos]}`,finishAction),wide:true}])}
+function requestSpend(p,amount,receiver,reason,onPaid,optional=false,onCancel=null,participantIds=null){if(p.money>=amount){if(receiver)transferDirect(p,receiver,amount,reason);else debitDirect(p,amount,reason,participantIds);updateAll();onPaid&&onPaid();return}openDebt(p,amount,receiver,reason,onPaid,optional,onCancel,participantIds)}function buyProperty(p,pos,d){requestSpend(p,d.buy,null,`Mua ${tileNames[pos]} (Ngân hàng)`,()=>{properties[pos]={pos,ownerId:p.id,level:0,mortgaged:false};log(`<b>${p.name}</b> mua ${tileNames[pos]}.`);updateAll();finishAction()},true,finishAction)}function build(p,pos,d){requestSpend(p,d.build,null,`Nâng ${tileNames[pos]} (Ngân hàng)`,()=>{properties[pos].level++;log(`${p.name} nâng ${tileNames[pos]} lên ${levelName(properties[pos].level)}.`);updateAll();finishAction()},true,finishAction)}
+function sellLevel(p,pos,d){if(properties[pos].level<=0)return;properties[pos].level--;let gain=Math.floor(d.build/2);credit(p,gain,`Hạ cấp ${tileNames[pos]} (Ngân hàng)`);updateAll();handleProperty(p,pos,d)}function sellPropertyValue(pos){const prop=properties[pos],d=landData[pos];if(!prop||!d)return 0;return prop.mortgaged?d.sellMort:d.sellActive}function mortgage(p,pos,d){let prop=properties[pos];if(prop.mortgaged||(!d.type&&prop.level>0))return;prop.mortgaged=true;credit(p,d.mort,`Thế chấp ${tileNames[pos]} (Ngân hàng)`);updateAll();finishAction()}function redeem(p,pos,d){requestSpend(p,d.redeem,null,`Chuộc ${tileNames[pos]} (Ngân hàng)`,()=>{properties[pos].mortgaged=false;updateAll();finishAction()},true,()=>handleProperty(p,pos,d))}
+function getRent(pos){const prop=properties[pos],d=landData[pos];if(!prop||prop.mortgaged)return 0;if(d.type==='airport'){let count=Object.values(properties).filter(x=>x.ownerId===prop.ownerId&&landData[x.pos]?.type==='airport'&&!x.mortgaged).length;return[0,25,50,100,200][count]}if(d.type==='utility'){let active=Object.values(properties).filter(x=>x.ownerId===prop.ownerId&&landData[x.pos]?.type==='utility'&&!x.mortgaged).length;return(d1+d2)*(active>=2?10:4)}return d.r[prop.level]}
+function pay(p,amount,receiver,reason,after,participantIds=null){requestSpend(p,amount,receiver,reason,after,false,null,participantIds)}
+function openDebt(p,amount,receiver,reason,after,optional=false,onCancel=null,participantIds=null){const own=Object.values(properties).filter(x=>x.ownerId===p.id);const draftProps={};const original={};const ops={};own.forEach(pr=>{original[pr.pos]={level:pr.level,mortgaged:pr.mortgaged};draftProps[pr.pos]={level:pr.level,mortgaged:pr.mortgaged,sold:false};ops[pr.pos]=[]});debtState={playerId:p.id,amount,receiverId:receiver?receiver.id:null,reason,after,optional,onCancel,participantIds,baseMoney:p.money,draftMoney:p.money,original,draftProps,ops};document.getElementById('debtModal').classList.remove('hidden');renderDebt()}
+function debtMinus(pos){
+  const s=debtState,d=landData[pos],dp=s.draftProps[pos];if(!dp||dp.sold)return;
+  if(!d.type&&dp.level>0&&!dp.mortgaged){
+    dp.level--;const gain=Math.floor(d.build/2);s.draftMoney+=gain;s.ops[pos].push({type:'level',cash:gain});
+  }else if(!dp.mortgaged){
+    dp.mortgaged=true;s.draftMoney+=d.mort;s.ops[pos].push({type:'mort',cash:d.mort});
+  }else{
+    const gain=d.sellMort;dp.sold=true;s.draftMoney+=gain;s.ops[pos].push({type:'sell',cash:gain});
+  }
+  renderDebt();
+}
+function debtPlus(pos){
+  const s=debtState,stack=s.ops[pos];if(!stack?.length)return;const op=stack[stack.length-1],dp=s.draftProps[pos];
+  if(s.draftMoney<op.cash)return;
+  stack.pop();
+  if(op.type==='sell')dp.sold=false;
+  else if(op.type==='mort')dp.mortgaged=false;
+  else if(op.type==='level')dp.level++;
+  s.draftMoney-=op.cash;renderDebt();
+}
+function canMinus(pos){
+  const s=debtState,d=landData[pos],dp=s.draftProps[pos];
+  return !!(dp&&!dp.sold&&(dp.mortgaged||(!d.type&&dp.level>0)||!dp.mortgaged));
+}
+function renderDebt(){
+  const s=debtState,p=players[s.playerId];
+  document.getElementById('debtReason').innerHTML=`Khoản chi: <b>${esc(s.reason)}</b>. Thay đổi dưới đây chỉ là <b>nháp</b> cho tới khi bấm Chấp nhận.`;
+  document.getElementById('debtCash').textContent=money(s.draftMoney);
+  document.getElementById('debtNeed').textContent=money(s.amount);
+  document.getElementById('debtLack').textContent=money(Math.max(0,s.amount-s.draftMoney));
+  let rows='';
+  Object.keys(s.draftProps).map(Number).sort((a,b)=>a-b).forEach(pos=>{
+    const d=landData[pos],dp=s.draftProps[pos];
+    const gain=dp.sold?0:(!d.type&&dp.level>0?Math.floor(d.build/2):(!dp.mortgaged?d.mort:d.sellMort));
+    const status=dp.sold?'ĐÃ BÁN HẲN':dp.mortgaged?'Thế chấp':d.type?'Đang hoạt động':levelName(dp.level);
+    const plus=s.ops[pos].length>0;
+    rows+=`<tr><td><b>${esc(tileNames[pos])}</b></td><td>${status}</td><td>${gain?`+${money(gain)}`:'—'}</td><td><button class="btn-warn" ${canMinus(pos)?'':'disabled'} onclick="debtMinus(${pos})">−</button><button class="btn-blue" ${plus?'':'disabled'} onclick="debtPlus(${pos})">+</button></td></tr>`;
+  });
+  document.getElementById('debtRows').innerHTML=rows||`<tr><td colspan="4">Không có tài sản để thanh lý.</td></tr>`;
+  const acc=document.getElementById('debtAccept');
+  acc.disabled=s.draftMoney<s.amount;
+  const cancel=document.getElementById('debtCancel');
+  cancel.classList.toggle('hidden',!s.optional);
+  cancel.textContent=s.optional?'↩ QUAY LẠI - HỦY QUYẾT ĐỊNH':'↩ QUAY LẠI';
+  cancel.onclick=()=>{
+    const cb=s.onCancel;
+    closeDebt();       // Nháp không được áp dụng vào game.
+    updateAll();
+    cb&&cb();          // Mua/nâng bị hủy và lượt tiếp tục bình thường.
+  };
+  acc.onclick=commitDebt;
+  const anyMinus=Object.keys(s.draftProps).some(pos=>canMinus(+pos));
+  const bankrupt=document.getElementById('debtBankrupt');
+  const bankruptcyReady=!s.optional&&s.draftMoney<s.amount&&!anyMinus;
+  bankrupt.classList.toggle('hidden',!bankruptcyReady);
+  bankrupt.onclick=()=>{applyDraftLiquidation(false);closeDebt();declareBankrupt(p,s.reason)};
+  let hint;
+  if(s.draftMoney>=s.amount){
+    hint='Đã đủ tiền. Nút Chấp nhận đã sáng.';
+  }else if(anyMinus){
+    hint=s.optional
+      ?'Có thể tiếp tục thanh lý bằng nút [−], hoặc bấm <b>QUAY LẠI</b> để hủy việc mua/nâng mà không thay đổi tài sản.'
+      :'Hãy dùng nút [−] để hạ cấp/thế chấp. Nút [+] chỉ hoàn tác các thay đổi nháp, không vượt quá trạng thái ban đầu.';
+  }else{
+    hint=s.optional
+      ?'<span class="danger-note">Dù thanh lý tất cả vẫn không đủ tiền. Bấm <b>QUAY LẠI - HỦY QUYẾT ĐỊNH</b>; không phá sản và trò chơi tiếp tục.</span>'
+      :'<span class="danger-note">Không còn tài sản có thể thanh lý và vẫn thiếu tiền.</span>';
+  }
+  document.getElementById('debtHint').innerHTML=hint;
+}
+function applyDraftLiquidation(record=true){
+  const s=debtState,p=players[s.playerId];
+  Object.keys(s.draftProps).map(Number).forEach(pos=>{
+    const prop=properties[pos];if(!prop)return;
+    const ops=s.ops[pos]||[];
+    for(const op of ops){
+      if(op.type==='level'){prop.level--;if(record)addTx(p,`Thanh lý công trình ${tileNames[pos]} (Ngân hàng)`,+op.cash)}
+      else if(op.type==='mort'){prop.mortgaged=true;if(record)addTx(p,`Thế chấp ${tileNames[pos]} (Ngân hàng)`,+op.cash)}
+      else if(op.type==='sell'){if(record)addTx(p,`Bán hẳn ${tileNames[pos]} sau thế chấp (Ngân hàng)`,+op.cash);delete properties[pos];break}
+    }
+  });
+  p.money=s.draftMoney;
+}
+function commitDebt(){const s=debtState;if(!s||s.draftMoney<s.amount)return;const p=players[s.playerId],receiver=s.receiverId===null?null:players[s.receiverId];applyDraftLiquidation(true);if(receiver){const participants=[p.id,receiver.id];p.money-=s.amount;receiver.money+=s.amount;addTx(p,`${s.reason} (Cho ${receiver.name})`,-s.amount,participants);addTx(receiver,`${s.reason} (Từ ${p.name})`,+s.amount,participants)}else{p.money-=s.amount;addTx(p,s.reason,-s.amount,s.participantIds)}log(`${p.name} thanh lý tài sản và hoàn tất ${money(s.amount)} (${s.reason}).`);const cb=s.after;closeDebt();updateAll();cb&&cb()}
+function closeDebt(){document.getElementById('debtModal').classList.add('hidden');debtState=null}
+function declareBankrupt(p,reason){gameOver=true;log(`<b>${p.name} PHÁ SẢN</b> vì ${reason}. Trận đấu kết thúc.`);setUI(`💥 <strong style="color:#fb7185">${esc(p.name)} PHÁ SẢN</strong><br>Trận đấu kết thúc ngay.<br>Tất cả người chơi còn lại thắng.`,[{text:'Chơi lại',cls:'btn-main',fn:()=>location.reload(),wide:true}]);updateAll()}
+function fitMetroTargetNames(){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.metro-name').forEach(el=>{
+      el.style.removeProperty('font-size');
+      let size=parseFloat(getComputedStyle(el).fontSize)||7;
+      const floor=3.25;
+      let guard=40;
+      while(guard-->0&&size>floor&&(el.scrollWidth>el.clientWidth+.5||el.scrollHeight>el.clientHeight+.5)){
+        size=Math.max(floor,size-.25);
+        el.style.setProperty('font-size',`${size}px`,'important');
+      }
+    });
+  }));
+}
+function showMetroChooser(p){
+  pendingMetro=p.id;
+  const cost=Math.ceil(p.money/2);
+  const n=tileNames.length;
+  const cols=7,rows=Math.ceil(n/cols);
+  const center=document.getElementById('center');
+  center.classList.remove('center-card-mode','center-asset-mode','center-asset-pre-mode','center-asset-post-mode');
+  center.classList.add('center-metro-mode');
+  center.style.setProperty('grid-template-rows','minmax(0,1fr)','important');
+  document.getElementById('confirmZone').innerHTML='';
+  document.getElementById('actions').innerHTML='';
+  document.getElementById('message').innerHTML=`<div class="metro-picker-wrap">
+    <div class="metro-picker-title">🚇 METRO SUỐI TIÊN</div>
+    <div class="metro-picker-sub">Chọn 1 ô để đến • Phí ${money(cost)} • Không nhận 200Đ START</div>
+    <div id="metroPickerGrid" class="metro-picker-grid" style="--metro-cols:${cols};--metro-rows:${rows}"></div>
+  </div>`;
+  const grid=document.getElementById('metroPickerGrid');
+  tileNames.forEach((name,i)=>{
+    const b=document.createElement('button');
+    b.type='button';b.className='metro-target';
+    b.innerHTML=`<span class="metro-no">${i+1}</span><span class="metro-name">${esc(name)}</span>`;
+    b.onclick=()=>guard(()=>metroTravelTo(p,i,cost),b);
+    grid.appendChild(b);
+  });
+  updateAll();
+  fitMetroTargetNames();
+}
+function metroTravelTo(p,target,cost){
+  leaveMetroMode();
+  pendingMetro=false;
+  debitDirect(p,cost,`Metro Suối Tiên → ${tileNames[target]}`);
+  p.pos=target;
+  updateAll();
+  showArrivalBanner(p); // direct transfer: no START bonus
+}
+function closeMetro(){leaveMetroMode();pendingMetro=false;finishAction()}
+function confirmMetro(){}
+function sendToJail(p){p.pos=10;p.inJail=true;p.jailTurns=0;extraTurn=false;doublesCount=0;updateAll();log(`${p.name} bị đưa vào Tù tại Metro Suối Tiên.`);setUI(`👮 <strong>${esc(p.name)} vào Tù</strong><br>Được chuyển tới Metro Suối Tiên và mang trạng thái ĐANG Ở TÙ.`,[{text:'TIẾP TỤC',cls:'btn-bad',fn:finishAction,wide:true}])}
+function showJailStart(p){setUI(`<div class="jail-attempt">🔒 ${esc(p.name)} ĐANG Ở TÙ</div><div class="jail-sub">Chọn một cách ra tù. Nếu chọn thử đôi, bạn được thử tối đa 3 lần ngay trong lượt này.</div>`,[{text:p.jailFree?'🎫 DÙNG THẺ RA TÙ':'🎫 KHÔNG CÓ THẺ',cls:'btn-blue',disabled:!p.jailFree,fn:()=>useJailCard(p)},{text:'💵 TRẢ 50Đ',cls:'btn-warn',fn:()=>payJail(p)},{text:'🎲 THỬ ĐỔ ĐÔI',cls:'btn-main',fn:()=>rollJail(p)}])}
+function useJailCard(p){if(!p.jailFree){showJailStart(p);return}p.jailFree--;returnHeldCard('chest',12);p.inJail=false;p.jailTurns=0;log(`${p.name} dùng thẻ ra tù miễn phí.`);updateAll();rollDice()}
+function payJail(p){pay(p,50,null,'Bảo lãnh ra tù (Ngân hàng)',()=>{p.inJail=false;p.jailTurns=0;rollDice()})}
+async function moveAfterJail(p,a,b,label){p.inJail=false;p.jailTurns=0;extraTurn=false;doublesCount=0;d1=a;d2=b;document.getElementById('message').innerHTML=`<strong>${label}</strong><br>${a}+${b}=${a+b} bước. Đang di chuyển...`;await animateMoveBy(p,a+b,1,true);processTile(p,false)}
+async function rollJail(p){
+  let last=[0,0];
+  for(let attempt=1;attempt<=3;attempt++){
+    const [a,b]=rollPair();last=[a,b];d1=a;d2=b;p.jailTurns=attempt;
+    await animateDiceRoll(a,b,1000);log(`${p.name} thử đôi lần ${attempt}: ${a}-${b}.`);
+    if(a===b){await moveAfterJail(p,a,b,`🎉 ĐỔ ĐÔI Ở LẦN ${attempt}`);return}
+    if(attempt<3){document.getElementById('message').innerHTML=`<div class="jail-attempt">LẦN ${attempt}: ${a} — ${b}</div><div class="jail-sub">Chưa ra đôi. Chuẩn bị thử lần ${attempt+1}/3...</div>`;await sleep(650)}
+  }
+  const [a,b]=last;p.lastJailRoll=[a,b];
+  setUI(`<div class="jail-attempt">3 LẦN ĐỀU KHÔNG ĐÔI</div><div class="jail-sub">Kết quả lần 3: <b>${a} + ${b} = ${a+b}</b> bước. Bạn bắt buộc rời tù bằng thẻ hoặc trả 50Đ; sau đó đi đúng ${a+b} bước.</div>`,[
+    {text:p.jailFree?'🎫 DÙNG THẺ RA TÙ':'🎫 KHÔNG CÓ THẺ',cls:'btn-blue',disabled:!p.jailFree,fn:()=>resolveThirdJailWithCard(p)},
+    {text:'💵 MẤT 50Đ',cls:'btn-bad',fn:()=>resolveThirdJailWithPay(p)}
+  ])
+}
+async function resolveThirdJailWithCard(p){if(!p.jailFree)return;p.jailFree--;returnHeldCard('chest',12);const [a,b]=p.lastJailRoll||[d1,d2];log(`${p.name} dùng thẻ sau 3 lần thử đôi.`);updateAll();await moveAfterJail(p,a,b,'🎫 DÙNG THẺ RA TÙ')}
+function resolveThirdJailWithPay(p){const [a,b]=p.lastJailRoll||[d1,d2];pay(p,50,null,'Bảo lãnh bắt buộc sau 3 lần thử (Ngân hàng)',()=>moveAfterJail(p,a,b,'💵 ĐÃ TRẢ 50Đ RA TÙ'))}
+function cardImageIndex(type,card){
+  const base=type==='chance'?baseChance:baseChest;
+  const idx=base.indexOf(card);
+  return String(Math.max(0,idx)+1).padStart(2,'0');
+}
+function cardFrontPath(type,card){return `assets/cards/${type}/${cardImageIndex(type,card)}.jpg`}
+function offerDraw(type,p){showCardChooser(type,p)}
+function showCardChooser(type,p){
+  const deck=type==='chance'?chanceDeck:chestDeck,base=type==='chance'?baseChance:baseChest;
+  if(!deck.length)refillDeck(type);
+  const visual=shuffle(deck);
+  const label=type==='chance'?'CƠ HỘI':'KHÍ VẬN';
+  const cls=type==='chance'?'chance':'chest';
+  const n=deck.length;
+  const cols=Math.max(1,Math.ceil(Math.sqrt(n)));const rows=Math.ceil(n/cols);document.getElementById('center').classList.add('center-card-mode');
+  document.getElementById('actions').innerHTML='';
+  document.getElementById('confirmZone').innerHTML='';
+  document.getElementById('message').innerHTML=`<div class="card-picker-wrap ${cls}">
+    <div class="card-picker-title">${label}</div>
+    <div class="card-picker-sub">Chọn 1 ô để lật thẻ. Còn <b>${n}</b> thẻ chưa xuất hiện.</div>
+    <div id="cardPickerGrid" class="card-picker-grid" style="--card-cols:${cols};--card-rows:${rows}"></div>
+  </div>`;
+  const grid=document.getElementById('cardPickerGrid');
+  visual.forEach((card,k)=>{
+    const b=document.createElement('button');
+    b.className='hidden-card';b.type='button';
+    b.title=`Bảng ${k+1}`;
+    b.innerHTML=`<div class="card-sign"></div>`;
+    b.onclick=()=>guard(()=>revealPickedCard(type,p,card),b);
+    grid.appendChild(b);
+  });
+  updateAll();
+}
+function revealPickedCard(type,p,card){
+  const deck=type==='chance'?chanceDeck:chestDeck;
+  const idx=deck.indexOf(card);if(idx>=0)deck.splice(idx,1);
+  const label=type==='chance'?'Cơ Hội':'Khí Vận',art=cardFrontPath(type,card);
+  document.getElementById('actions').innerHTML='';document.getElementById('confirmZone').innerHTML='';
+  document.getElementById('message').innerHTML=`<div class="card-reveal"><div class="card-reveal-art"><img src="${art}" alt="${esc(label)}"></div><div class="card-reveal-info"><h2>${esc(card.t)}</h2><button id="inlineCardAccept" class="card-inline-accept">CHẤP NHẬN</button></div></div>`;
+  const btn=document.getElementById('inlineCardAccept');btn.onclick=()=>guard(()=>{document.getElementById('center').classList.remove('center-card-mode');log(`${p.name} rút thẻ: ${card.t}.`);return resolveCryLaughForDraw(p,type,card,()=>card.run(p))},btn);updateAll();
+}
+function bankCard(p,amount,label){if(amount>=0){credit(p,amount,`${label} (Ngân hàng)`);updateAll();finishAction()}else pay(p,-amount,null,`${label} (Ngân hàng)`,finishAction)}
+async function animateOneDie(final,duration=1000,label='ĐANG GIEO 1 XÚC XẮC...'){busy=true;const e1=document.getElementById('die1'),e2=document.getElementById('die2');e1.classList.add('rolling');e2.classList.remove('rolling');e2.style.opacity='.16';document.getElementById('confirmZone').innerHTML='';document.getElementById('actions').innerHTML='';document.getElementById('message').innerHTML=`<strong>🎲 ${label}</strong>`;const started=performance.now();await new Promise(resolve=>{const timer=setInterval(()=>{setDice(1+Math.floor(Math.random()*6),'–');if(performance.now()-started>=duration){clearInterval(timer);resolve()}},70)});setDice(final,'–');e1.classList.remove('rolling');e2.style.opacity='1';busy=false}
+async function lottery(p){let r=1+Math.floor(Math.random()*6);await animateOneDie(r,1000,'XỔ SỐ KIẾN THIẾT');let gain=(r===1||r===4)?5:(r===2||r===5)?50:150;credit(p,gain,`Xổ số kiến thiết – ra ${r} (Ngân hàng)`);updateAll();finishAction()}
+async function cardOddEvenMove(p){let r=1+Math.floor(Math.random()*6);await animateOneDie(r,1000,'TÀU BAY XÚC XẮC');log(`${p.name} chuyến bay xúc xắc ra ${r}.`);await animateMoveBy(p,r,r%2===0?1:-1,r%2===0);processTile(p)}
+async function cardNearestLand(p){let t=findNext(p.pos,i=>landData[i]&&!landData[i].type);await moveTo(p,t,true,false);let prop=properties[t],d=landData[t];if(!prop){setUI(`🏘️ Đến ${tileNames[t]}: thẻ yêu cầu <strong>bắt buộc mua ${money(d.buy)}</strong>.`,[{text:'Mua bắt buộc',cls:'btn-main',fn:()=>requestSpend(p,d.buy,null,`Mua bắt buộc ${tileNames[t]} (Ngân hàng)`,()=>{properties[t]={pos:t,ownerId:p.id,level:0,mortgaged:false};updateAll();finishAction()},false),wide:true}]);return}if(prop.ownerId===p.id||prop.mortgaged){finishAction();return}let [a,b]=rollPair();d1=a;d2=b;await animateDiceRoll(a,b,1000);let o=players[prop.ownerId];pay(p,10*(a+b),o,`Thẻ địa danh gần nhất – ${tileNames[t]}`,finishAction)}
+async function cardNearestAirport(p){let t=findNext(p.pos,i=>landData[i]?.type==='airport');await moveTo(p,t,true,false);let prop=properties[t],d=landData[t];if(!prop){setUI(`🚉 ${tileNames[t]} vô chủ: bắt buộc mua ${money(d.buy)}.`,[{text:'Mua bắt buộc',cls:'btn-main',fn:()=>requestSpend(p,d.buy,null,`Mua bắt buộc ${tileNames[t]} (Ngân hàng)`,()=>{properties[t]={pos:t,ownerId:p.id,level:0,mortgaged:false};updateAll();finishAction()},false),wide:true}]);return}if(prop.ownerId===p.id||prop.mortgaged){finishAction();return}let [a,b]=rollPair();d1=a;d2=b;await animateDiceRoll(a,b,1000);let o=players[prop.ownerId];pay(p,10*(a+b),o,`Thẻ ga gần nhất – ${tileNames[t]}`,finishAction)}
+function runwayFee(p){let c=Object.values(properties).filter(x=>x.ownerId===p.id&&landData[x.pos]?.type==='airport').length,amt=[0,25,50,100,200][c];if(!amt){finishAction();return}pay(p,amt,null,'Hỏng đường ray (Ngân hàng)',finishAction)}
+function repairFee(p,houseFee,hotelFee,utilityPos,label){const stat=repairTotals(p,houseFee,hotelFee),total=stat.total;if(!total){finishAction();return}const up=properties[utilityPos],owner=up&&!up.mortgaged?players[up.ownerId]:null,participants=owner?[p.id,owner.id]:[p.id];pay(p,total,null,`${label} (Ngân hàng)`,()=>{if(owner){const share=Math.floor(total/5);if(share>0){owner.money+=share;log(`${owner.name}: +${money(share)} (Nhận 20% ${label}).`)}}updateAll();finishAction()},participants)}
+function birthday(p){players.filter(x=>x.id!==p.id).forEach(o=>transferUpTo(o,p,10,'Mừng sinh nhật'));updateAll();finishAction()}
+function flipFortune(p){let gain=p.money<100?400:p.money<500?50:10;credit(p,gain,'Lật ngược tình thế (Ngân hàng)');updateAll();finishAction()}
+function poorSupport(p){const min=Math.min(...players.map(x=>x.money)),poor=players.filter(x=>x.money===min);if(p.money===min){players.filter(x=>x.id!==p.id).forEach(o=>transferUpTo(o,p,20,'Ủng hộ người nghèo'));updateAll();finishAction();return}const recipients=poor,participants=[p.id,...recipients.map(x=>x.id)];pay(p,50,null,'Ủng hộ người nghèo',()=>{const base=Math.floor(50/recipients.length),rem=50-base*recipients.length;recipients.forEach((x,i)=>{const amt=base+(i<rem?1:0);x.money+=amt;addTx(x,`Ủng hộ người nghèo (Từ ${p.name})`,+amt,participants)});updateAll();finishAction()},participants)}
+function presidentFee(p){const others=players.filter(x=>x.id!==p.id),total=30*others.length;if(!total){finishAction();return}const participants=[p.id,...others.map(x=>x.id)];pay(p,total,null,'Bầu tổng thống',()=>{others.forEach(x=>{x.money+=30;addTx(x,`Bầu tổng thống (Từ ${p.name})`,+30,participants)});updateAll();finishAction()},participants)}
+
+/* ===== SOCKET.IO ONLINE CLIENT ===== */
+function onlineEl(id){return document.getElementById(id)}
+function cleanRoomCode(value){return String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)}
+function normalizeOnlineServer(value){
+  const raw=String(value||'').trim().replace(/\/+$/,'');if(!raw)return'';
+  try{const url=new URL(raw);return url.protocol==='http:'||url.protocol==='https:'?url.origin:''}catch(_){return''}
+}
+function storedOnlineServer(){
+  try{
+    const raw=localStorage.getItem('tiPhuSocketServer')||'',normalized=normalizeOnlineServer(raw);
+    if(raw&&!normalized)localStorage.removeItem('tiPhuSocketServer');
+    return normalized;
+  }catch(_){return''}
+}
+function desiredOnlineServer(){
+  const typed=onlineEl('onlineServerInput')?.value.trim();
+  if(typed)return normalizeOnlineServer(typed);
+  if(window.TI_PHU_SOCKET_URL){const configured=normalizeOnlineServer(window.TI_PHU_SOCKET_URL);if(configured)return configured}
+  const saved=storedOnlineServer();if(saved)return saved.replace(/\/$/,'');
+  return location.protocol==='http:'||location.protocol==='https:'?location.origin:'http://localhost:3000';
+}
+function setOnlineNote(text,type=''){
+  const el=onlineEl('onlineNote');if(!el)return;
+  el.textContent=text;el.className=`online-note${type?` ${type}`:''}`;
+}
+function announceOnline(text){
+  setOnlineNote(text,'error');
+  const label=onlineEl('onlineRoomLabel');if(!label)return;
+  const previous=label.textContent;label.textContent=text;
+  clearTimeout(announceOnline.timer);announceOnline.timer=setTimeout(()=>{label.textContent=previous;updateOnlineBar()},1900);
+}
+function updateOnlineBar(){
+  const dot=onlineEl('onlineDot'),label=onlineEl('onlineRoomLabel');if(!dot||!label)return;
+  const connected=!!onlineSocket?.connected;
+  dot.className=`online-dot${onlineRoomCode?' room':connected?' connected':''}`;
+  if(onlineRoomCode){
+    const onlineCount=onlineMembers.filter(x=>x.connected).length;
+    const seat=players.find(x=>x.id===Number(onlinePlayerId));
+    label.textContent=`Phòng ${onlineRoomCode} • ${seat?.name||'Khán giả'}${onlineCount?` • ${onlineCount} online`:''}`;
+  }else label.textContent=connected?'Đã kết nối • Chưa vào phòng':'Mất kết nối máy chủ';
+  onlineEl('onlineCopyBtn')?.classList.toggle('hidden',!onlineRoomCode);
+  onlineEl('onlineLeaveBtn')?.classList.toggle('hidden',!onlineRoomCode);
+  onlineEl('onlineCreateBtn')?.classList.toggle('hidden',!!onlineRoomCode);
+  onlineEl('onlineJoinBtn')?.classList.toggle('hidden',!!onlineRoomCode);
+  document.body.classList.add('online-active');
+  updateOnlineTurnLock();
+}
+function canLocalGameAction(){return !onlineRoomCode||Number(onlinePlayerId)===Number(currentTurn)}
+function updateOnlineTurnLock(){document.body.classList.toggle('online-turn-locked',!!onlineRoomCode&&!canLocalGameAction())}
+function connectOnlineSocket(serverUrl=desiredOnlineServer()){
+  if(typeof io!=='function'){setOnlineNote('Không tải được thư viện Socket.IO. Kiểm tra kết nối mạng.','error');return null}
+  const normalized=normalizeOnlineServer(serverUrl);
+  if(!normalized){setOnlineNote('Địa chỉ máy chủ phải bắt đầu bằng http:// hoặc https://. Nếu đang mở game trên Render, hãy để trống ô này.','error');return null}
+  if(onlineSocket&&onlineSocket.io?.uri===normalized)return onlineSocket;
+  if(onlineSocket)onlineSocket.disconnect();
+  try{localStorage.setItem('tiPhuSocketServer',normalized)}catch(_){}
+  if(onlineEl('onlineServerInput'))onlineEl('onlineServerInput').value=normalized===location.origin?'':normalized;
+  onlineSocket=io(normalized,{auth:{clientToken:onlineClientToken},reconnection:true,reconnectionAttempts:Infinity,timeout:8000});
+  onlineSocket.on('connect',()=>{updateOnlineBar();resumeOnlineRoom()});
+  onlineSocket.on('disconnect',()=>updateOnlineBar());
+  onlineSocket.on('connect_error',err=>{updateOnlineBar();setOnlineNote(`Không kết nối được máy chủ: ${err.message}`,'error')});
+  onlineSocket.on('room:members',payload=>{if(payload?.roomCode===onlineRoomCode){onlineMembers=payload.members||[];updateOnlineBar()}});
+  onlineSocket.on('game:state',payload=>{
+    if(payload?.roomCode!==onlineRoomCode||!payload.state)return;
+    if(Number(payload.version)<=onlineVersion)return;
+    onlineVersion=Number(payload.version)||onlineVersion;
+    applyOnlineSnapshot(payload.state);
+  });
+  onlineSocket.on('room:closed',payload=>{if(!payload?.roomCode||payload.roomCode===onlineRoomCode){clearOnlineSession();announceOnline('Phòng đã đóng.')}});
+  return onlineSocket;
+}
+function withOnlineSocket(run){
+  const wanted=desiredOnlineServer();
+  if(!wanted){setOnlineNote('Địa chỉ máy chủ không hợp lệ. Hãy xóa nội dung ô này để game tự dùng máy chủ Render.','error');onlineEl('onlineServerInput')?.focus();return}
+  const socket=connectOnlineSocket(wanted);if(!socket)return;
+  if(socket.connected){run(socket);return}
+  setOnlineNote('Đang kết nối máy chủ…');
+  let done=false;
+  const go=()=>{if(done)return;done=true;clearTimeout(timer);run(socket)};
+  const timer=setTimeout(()=>{if(done)return;done=true;setOnlineNote('Máy chủ không phản hồi. Kiểm tra địa chỉ máy chủ.','error')},9000);
+  socket.once('connect',go);socket.connect();
+}
+function createOnlineSnapshot(){
+  const safeAsset=assetState?JSON.parse(JSON.stringify(assetState)):null;
+  return {
+    schema:1,savedAt:Date.now(),players:JSON.parse(JSON.stringify(players)),properties:JSON.parse(JSON.stringify(properties)),
+    currentTurn,d1,d2,extraTurn,doublesCount,gameOver,turnGate,gameHistory:JSON.parse(JSON.stringify(gameHistory)),txSequence,
+    assetState:safeAsset,chanceDeck:chanceDeck.map(c=>baseChance.indexOf(c)).filter(i=>i>=0),chestDeck:chestDeck.map(c=>baseChest.indexOf(c)).filter(i=>i>=0),
+    ui:{message:onlineEl('message')?.innerHTML||'',die1:onlineEl('die1')?.textContent||'–',die2:onlineEl('die2')?.textContent||'–'}
+  };
+}
+function applyOnlineSnapshot(state){
+  if(!state||!Array.isArray(state.players))return;
+  onlineApplyingState=true;
+  try{
+    players=JSON.parse(JSON.stringify(state.players));properties=JSON.parse(JSON.stringify(state.properties||{}));
+    currentTurn=Math.max(0,Math.min(players.length-1,Number(state.currentTurn)||0));d1=Number(state.d1)||0;d2=Number(state.d2)||0;
+    extraTurn=!!state.extraTurn;doublesCount=Number(state.doublesCount)||0;gameOver=!!state.gameOver;turnGate=state.turnGate??null;
+    gameHistory=JSON.parse(JSON.stringify(state.gameHistory||[])).slice(0,20);txSequence=Number(state.txSequence)||0;
+    assetState=state.assetState?JSON.parse(JSON.stringify(state.assetState)):null;debtState=null;pendingWheel=null;pendingMetro=false;busy=false;clickLocked=false;
+    chanceDeck=(state.chanceDeck||[]).map(i=>baseChance[i]).filter(Boolean);chestDeck=(state.chestDeck||[]).map(i=>baseChest[i]).filter(Boolean);
+    if(!chanceDeck.length)chanceDeck=shuffle(baseChance);if(!chestDeck.length)chestDeck=shuffle(baseChest);
+    if(document.querySelectorAll('#board .cell').length!==40)initBoard();
+    onlineEl('setupOverlay')?.classList.add('hidden');
+    if(assetState)updateAll();
+    else if(turnGate==='pre')showPreRollMenu(current());
+    else if(turnGate==='post')showPostTurnMenu(current());
+    else{
+      updateAll();setDice(state.ui?.die1??d1??'–',state.ui?.die2??d2??'–');
+      if(state.ui?.message)onlineEl('message').innerHTML=state.ui.message;
+      if(!canLocalGameAction()){onlineEl('actions').innerHTML='';onlineEl('confirmZone').innerHTML=''}
+    }
+  }finally{onlineApplyingState=false;updateOnlineBar()}
+}
+function scheduleOnlineSync(reason='state'){
+  if(onlineApplyingState||!onlineRoomCode||!onlineSocket?.connected||!players.length)return;
+  onlineSyncQueued=true;clearTimeout(onlineSyncTimer);
+  onlineSyncTimer=setTimeout(()=>flushOnlineSync(reason),90);
+}
+function flushOnlineSync(reason='state'){
+  if(onlineSyncInFlight||!onlineSyncQueued||!onlineSocket?.connected||!onlineRoomCode)return;
+  onlineSyncQueued=false;onlineSyncInFlight=true;
+  onlineSocket.emit('game:state',{roomCode:onlineRoomCode,baseVersion:onlineVersion,reason,state:createOnlineSnapshot()},reply=>{
+    onlineSyncInFlight=false;
+    if(reply?.ok)onlineVersion=Number(reply.version)||onlineVersion;
+    else if(reply?.code==='STALE_STATE'&&reply.state){onlineVersion=Number(reply.version)||onlineVersion;applyOnlineSnapshot(reply.state)}
+    else if(reply?.message)announceOnline(reply.message);
+    if(onlineSyncQueued)setTimeout(()=>flushOnlineSync('queued'),0);
+  });
+}
+function saveOnlineSession(){try{localStorage.setItem('tiPhuOnlineSession',JSON.stringify({roomCode:onlineRoomCode,playerId:onlinePlayerId,clientToken:onlineClientToken}))}catch(_){} }
+function clearOnlineSession(){
+  onlineRoomCode='';onlinePlayerId=null;onlineVersion=0;onlineMembers=[];onlineSyncQueued=false;onlineSyncInFlight=false;
+  try{localStorage.removeItem('tiPhuOnlineSession')}catch(_){}updateOnlineBar();
+}
+function resumeOnlineRoom(){
+  if(onlineRoomCode||!onlineSocket?.connected)return;
+  let saved=null;try{saved=JSON.parse(localStorage.getItem('tiPhuOnlineSession')||'null')}catch(_){}
+  if(!saved?.roomCode)return;
+  onlineSocket.emit('room:resume',{roomCode:saved.roomCode,playerId:saved.playerId,clientToken:onlineClientToken},reply=>{
+    if(!reply?.ok){try{localStorage.removeItem('tiPhuOnlineSession')}catch(_){}return}
+    acceptOnlineRoom(reply,saved.playerId);
+  });
+}
+function acceptOnlineRoom(reply,playerId){
+  onlineRoomCode=cleanRoomCode(reply.roomCode);onlinePlayerId=Number(playerId);onlineVersion=Number(reply.version)||0;onlineMembers=reply.members||[];
+  saveOnlineSession();if(reply.state)applyOnlineSnapshot(reply.state);updateOnlineBar();closeOnlineModal();
+}
+function openOnlineModal(mode='join'){
+  onlineEl('onlineModal').classList.remove('hidden');onlineEl('onlineSeatWrap').classList.add('hidden');
+  onlineEl('onlineRoomField').classList.toggle('hidden',mode==='create');
+  onlineEl('onlineCreateConfirmBtn').classList.toggle('hidden',mode!=='create');
+  onlineEl('onlineJoinConfirmBtn').classList.toggle('hidden',mode==='create');
+  onlineEl('onlineInspectBtn').classList.toggle('hidden',mode==='create');
+  setOnlineNote(mode==='create'?'Không cần nhập mã phòng. Máy chủ sẽ tự tạo mã sau khi bạn bấm nút bên dưới.':'Chỉ nhập mã phòng vào ô Mã phòng, rồi chọn KIỂM TRA PHÒNG.');
+}
+function closeOnlineModal(){onlineEl('onlineModal').classList.add('hidden')}
+function createOnlineRoom(){
+  if(!players.length||!onlineEl('setupOverlay')?.classList.contains('hidden')){setOnlineNote('Hãy thiết lập và bắt đầu ván trước khi tạo phòng online.','error');return}
+  withOnlineSocket(socket=>socket.emit('room:create',{clientToken:onlineClientToken,playerId:0,state:createOnlineSnapshot()},reply=>{
+    if(!reply?.ok){setOnlineNote(reply?.message||'Không tạo được phòng.','error');return}
+    acceptOnlineRoom(reply,0);announceOnline(`Đã tạo phòng ${reply.roomCode}`);
+  }));
+}
+function inspectOnlineRoom(){
+  const code=cleanRoomCode(onlineEl('onlineRoomInput').value);onlineEl('onlineRoomInput').value=code;
+  if(code.length!==6){setOnlineNote('Mã phòng phải có 6 ký tự.','error');return}
+  withOnlineSocket(socket=>socket.emit('room:inspect',{roomCode:code},reply=>{
+    if(!reply?.ok){setOnlineNote(reply?.message||'Không tìm thấy phòng.','error');return}
+    const select=onlineEl('onlineSeatSelect');select.innerHTML='';
+    (reply.players||[]).forEach(p=>{const opt=document.createElement('option');opt.value=p.id;opt.textContent=`${p.name}${p.taken?' — đã có người':''}`;opt.disabled=p.taken&&!p.mine;select.appendChild(opt)});
+    onlineEl('onlineSeatList').innerHTML=(reply.players||[]).map(p=>`<div class="online-seat"><span class="online-seat-color" style="background:${p.color}"></span><b>${esc(p.name)}</b><small>${p.taken?(p.connected?'Đang online':'Đã giữ chỗ'):'Còn trống'}</small></div>`).join('');
+    onlineEl('onlineSeatWrap').classList.remove('hidden');setOnlineNote(`Đã tìm thấy phòng ${code}. Chọn đúng tên của bạn.`,'ok');
+  }));
+}
+function joinOnlineRoom(){
+  const code=cleanRoomCode(onlineEl('onlineRoomInput').value),playerId=Number(onlineEl('onlineSeatSelect').value);
+  if(code.length!==6||!Number.isInteger(playerId)){setOnlineNote('Kiểm tra phòng và chọn người chơi trước.','error');return}
+  withOnlineSocket(socket=>socket.emit('room:join',{roomCode:code,playerId,clientToken:onlineClientToken},reply=>{
+    if(!reply?.ok){setOnlineNote(reply?.message||'Không vào được phòng.','error');return}
+    acceptOnlineRoom(reply,playerId);
+  }));
+}
+function leaveOnlineRoom(){
+  if(onlineSocket?.connected&&onlineRoomCode)onlineSocket.emit('room:leave',{roomCode:onlineRoomCode});
+  clearOnlineSession();announceOnline('Đã rời phòng online.');
+}
+function copyOnlineRoom(){
+  if(!onlineRoomCode)return;const text=`${location.origin}${location.pathname}?room=${onlineRoomCode}`;
+  navigator.clipboard?.writeText(text).then(()=>announceOnline(`Đã sao chép link phòng ${onlineRoomCode}`)).catch(()=>prompt('Sao chép đường link:',text));
+}
+function initOnlineUI(){
+  onlineEl('onlineCreateBtn').onclick=()=>openOnlineModal('create');onlineEl('onlineJoinBtn').onclick=()=>openOnlineModal('join');
+  onlineEl('onlineCopyBtn').onclick=copyOnlineRoom;onlineEl('onlineLeaveBtn').onclick=leaveOnlineRoom;onlineEl('onlineCloseBtn').onclick=closeOnlineModal;
+  onlineEl('onlineCreateConfirmBtn').onclick=createOnlineRoom;onlineEl('onlineInspectBtn').onclick=inspectOnlineRoom;onlineEl('onlineJoinConfirmBtn').onclick=joinOnlineRoom;
+  onlineEl('onlineRoomInput').value=cleanRoomCode(new URLSearchParams(location.search).get('room'));
+  onlineEl('onlineServerInput').value=storedOnlineServer()&&storedOnlineServer()!==location.origin?storedOnlineServer():'';
+  document.body.classList.add('online-active');connectOnlineSocket();updateOnlineBar();
+  if(onlineEl('onlineRoomInput').value)openOnlineModal('join');
+}
+renderSetupRows();
+window.addEventListener('resize',()=>requestAnimationFrame(()=>{fitTileNames();layoutPlayerOrbit();fitMetroTargetNames();requestAnimationFrame(fitTileNames)}));
+const startGameBtn=document.getElementById('startGameBtn');if(startGameBtn)startGameBtn.addEventListener('click',startGame);
+initOnlineUI();
+</script>
+</body>
+</html>
+
+<!-- V0.11 UI: owner tags intentionally removed; ownership is shown by cell background color. -->

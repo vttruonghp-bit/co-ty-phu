@@ -1,0 +1,23 @@
+{
+  "name": "co-ti-phu-viet-nam-socketio",
+  "version": "0.29.1",
+  "private": true,
+  "description": "Cờ Tỉ Phú Việt Nam chơi online bằng Socket.IO",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node scripts/verify-structure.js",
+    "test": "node --test test/socket-smoke.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3"
+  }
+}

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: co-ti-phu-viet-nam
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run check
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
